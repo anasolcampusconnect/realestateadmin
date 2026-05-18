@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React from "react";
 import {
     Dimensions,
@@ -297,7 +298,7 @@ export default function RealEstateDashboard() {
           >
             <View style={styles.sidebarHeader}>
               <Text style={styles.boardHeading}>Listing Board</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/properties")}>
                 <Text style={styles.viewAllText}>View All (12)</Text>
               </TouchableOpacity>
             </View>

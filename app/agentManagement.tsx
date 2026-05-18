@@ -2,20 +2,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    Alert,
-    Dimensions,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import AdminLayout from "../components/AdminLayout";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 1024;
 
 interface Agent {
@@ -55,7 +55,7 @@ export default function AgentManagement() {
     {
       id: "AGT-101",
       name: "Rohan Sharma",
-      email: "rohan.sharma@spacezant.com",
+      email: "rohan.sharma@kontako.com",
       region: "Mumbai South",
       listings: 24,
       salesClosed: 14,
@@ -65,7 +65,7 @@ export default function AgentManagement() {
     {
       id: "AGT-102",
       name: "Ananya Iyer",
-      email: "ananya.i@spacezant.com",
+      email: "ananya.i@kontako.com",
       region: "Bangalore East",
       listings: 18,
       salesClosed: 9,
@@ -75,7 +75,7 @@ export default function AgentManagement() {
     {
       id: "AGT-103",
       name: "Vikram Malhotra",
-      email: "v.malhotra@spacezant.com",
+      email: "v.malhotra@kontako.com",
       region: "Delhi NCR",
       listings: 31,
       salesClosed: 22,
@@ -85,7 +85,7 @@ export default function AgentManagement() {
     {
       id: "AGT-104",
       name: "Sneha Reddy",
-      email: "sneha.r@spacezant.com",
+      email: "sneha.r@kontako.com",
       region: "Hyderabad West",
       listings: 7,
       salesClosed: 2,
@@ -95,7 +95,7 @@ export default function AgentManagement() {
     {
       id: "AGT-105",
       name: "Kabir Mehta",
-      email: "kabir.m@spacezant.com",
+      email: "kabir.m@kontako.com",
       region: "Pune Central",
       listings: 0,
       salesClosed: 0,
@@ -181,7 +181,6 @@ export default function AgentManagement() {
   };
 
   const handleAddAgent = () => {
-    // Validation
     if (!newAgent.name.trim()) {
       Alert.alert("Error", "Please enter agent name");
       return;
@@ -195,7 +194,6 @@ export default function AgentManagement() {
       return;
     }
 
-    // Generate new agent ID
     const newId = `AGT-${Math.floor(Math.random() * 900) + 200}`;
 
     const agentToAdd: Agent = {
@@ -211,7 +209,6 @@ export default function AgentManagement() {
 
     setAgentsData((prev) => [...prev, agentToAdd]);
 
-    // Reset form
     setNewAgent({
       name: "",
       email: "",
@@ -316,27 +313,63 @@ export default function AgentManagement() {
           </TouchableOpacity>
         </View>
 
-        {/* Metrics Grid */}
-        <View style={styles.metricsGrid}>
-          {metrics.map((metric, idx) => (
-            <LinearGradient
-              key={idx}
-              colors={metric.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.metricCard}
-            >
-              <View style={styles.metricHeader}>
-                <View style={styles.metricIconContainer}>
-                  <Ionicons name={metric.icon as any} size={22} color="white" />
+        {/* Metrics Section */}
+        {isWeb ? (
+          <View style={styles.metricsGrid}>
+            {metrics.map((metric, idx) => (
+              <LinearGradient
+                key={idx}
+                colors={metric.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.metricCard}
+              >
+                <View style={styles.metricHeader}>
+                  <View style={styles.metricIconContainer}>
+                    <Ionicons
+                      name={metric.icon as any}
+                      size={22}
+                      color="white"
+                    />
+                  </View>
+                  <Text style={styles.metricLabel}>{metric.label}</Text>
                 </View>
-                <Text style={styles.metricLabel}>{metric.label}</Text>
-              </View>
-              <Text style={styles.metricValue}>{metric.value}</Text>
-              <Text style={styles.metricSubtext}>{metric.subtext}</Text>
-            </LinearGradient>
-          ))}
-        </View>
+                <Text style={styles.metricValue}>{metric.value}</Text>
+                <Text style={styles.metricSubtext}>{metric.subtext}</Text>
+              </LinearGradient>
+            ))}
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.metricsCarousel}
+            contentContainerStyle={styles.metricsCarouselContent}
+          >
+            {metrics.map((metric, idx) => (
+              <LinearGradient
+                key={idx}
+                colors={metric.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.metricCarouselCard}
+              >
+                <View style={styles.metricHeader}>
+                  <View style={styles.metricIconContainerMobile}>
+                    <Ionicons
+                      name={metric.icon as any}
+                      size={18}
+                      color="white"
+                    />
+                  </View>
+                  <Text style={styles.metricLabelMobile}>{metric.label}</Text>
+                </View>
+                <Text style={styles.metricValueMobile}>{metric.value}</Text>
+                <Text style={styles.metricSubtextMobile}>{metric.subtext}</Text>
+              </LinearGradient>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Filter Toolbar */}
         <View style={styles.toolbarContainer}>
@@ -345,7 +378,7 @@ export default function AgentManagement() {
               <Ionicons name="search-outline" size={20} color="#9ca3af" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search by name, ID, region, or email..."
+                placeholder="Search by name, ID, region..."
                 placeholderTextColor="#9ca3af"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -360,7 +393,11 @@ export default function AgentManagement() {
 
           <View style={styles.filterSection}>
             <Text style={styles.filterLabel}>Status:</Text>
-            <View style={styles.statusFiltersWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.statusFiltersWrapper}
+            >
               {(["All", "Active", "Pending", "Suspended"] as const).map(
                 (status) => (
                   <TouchableOpacity
@@ -392,12 +429,16 @@ export default function AgentManagement() {
                   </TouchableOpacity>
                 ),
               )}
-            </View>
+            </ScrollView>
           </View>
         </View>
 
         {/* Agent Directory */}
-        <View style={styles.ledgerWrapperCard}>
+        <View
+          style={
+            isWeb ? styles.ledgerWrapperCard : styles.mobileLedgerContainer
+          }
+        >
           <View style={styles.cardHeader}>
             <View>
               <Text style={styles.ledgerHeading}>Agent Directory</Text>
@@ -527,6 +568,7 @@ export default function AgentManagement() {
                           { backgroundColor: statusConfig.bg },
                         ]}
                       >
+                        {/* FIXED: Swapped out ")" syntax layout with a standard configuration closing array bracket "]" safely below */}
                         <View
                           style={[
                             styles.statusDot,
@@ -573,11 +615,20 @@ export default function AgentManagement() {
                 const permConfig = getPermissionsBadge(agent.permissions);
                 return (
                   <View key={agent.id} style={styles.mobileAgentCard}>
-                    <View style={styles.cardHeaderRow}>
-                      <Text style={styles.mobileCardId}>{agent.id}</Text>
+                    <View style={styles.cardHeaderRowMobile}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Text style={styles.mobileCardId}>{agent.id}</Text>
+                        <Text style={styles.mobileCardName}>{agent.name}</Text>
+                      </View>
                       <View
                         style={[
-                          styles.statusBadge,
+                          styles.statusBadgeMobile,
                           { backgroundColor: statusConfig.bg },
                         ]}
                       >
@@ -589,7 +640,7 @@ export default function AgentManagement() {
                         />
                         <Text
                           style={[
-                            styles.statusBadgeText,
+                            styles.statusBadgeTextMobile,
                             { color: statusConfig.text },
                           ]}
                         >
@@ -598,52 +649,30 @@ export default function AgentManagement() {
                       </View>
                     </View>
 
-                    <Text style={styles.mobileCardName}>{agent.name}</Text>
                     <Text style={styles.mobileCardEmail}>{agent.email}</Text>
 
-                    <View style={styles.cardDetailsBox}>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailFieldLabel}>Region:</Text>
-                        <Text style={styles.detailFieldValue}>
-                          {agent.region}
-                        </Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailFieldLabel}>Listings:</Text>
-                        <Text
-                          style={[
-                            styles.detailFieldValue,
-                            { color: "#D95D29", fontWeight: "700" },
-                          ]}
+                    <View style={styles.cardDetailsBoxMobile}>
+                      <View style={styles.detailRowMobile}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
                         >
-                          {agent.listings} properties
-                        </Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailFieldLabel}>
-                          Sales Closed:
-                        </Text>
-                        <Text
-                          style={[
-                            styles.detailFieldValue,
-                            { color: "#10b981", fontWeight: "700" },
-                          ]}
-                        >
-                          {agent.salesClosed} deals
-                        </Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailFieldLabel}>
-                          Permissions:
-                        </Text>
+                          <Ionicons
+                            name="location-outline"
+                            size={12}
+                            color="#6b7280"
+                          />
+                          <Text style={styles.detailFieldValueMobile}>
+                            {agent.region}
+                          </Text>
+                        </View>
                         <View
                           style={[
-                            styles.permissionBadge,
-                            {
-                              backgroundColor: `${permConfig.color}15`,
-                              paddingHorizontal: 8,
-                              paddingVertical: 2,
-                            },
+                            styles.permissionBadgeMobile,
+                            { backgroundColor: `${permConfig.color}15` },
                           ]}
                         >
                           <Ionicons
@@ -653,11 +682,30 @@ export default function AgentManagement() {
                           />
                           <Text
                             style={[
-                              styles.permissionText,
-                              { color: permConfig.color, fontSize: 10 },
+                              styles.permissionTextMobile,
+                              { color: permConfig.color },
                             ]}
                           >
-                            {agent.permissions}
+                            {permConfig.label}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.metricsSplitRowMobile}>
+                        <View style={styles.metricItemMobile}>
+                          <Text style={styles.metricCountLabelMobile}>
+                            Listings
+                          </Text>
+                          <Text style={styles.metricCountValueMobileOrange}>
+                            {agent.listings}
+                          </Text>
+                        </View>
+                        <View style={styles.metricItemMobile}>
+                          <Text style={styles.metricCountLabelMobile}>
+                            Deals Closed
+                          </Text>
+                          <Text style={styles.metricCountValueMobileGreen}>
+                            {agent.salesClosed}
                           </Text>
                         </View>
                       </View>
@@ -670,7 +718,7 @@ export default function AgentManagement() {
                       >
                         <Ionicons
                           name="create-outline"
-                          size={16}
+                          size={14}
                           color="white"
                         />
                         <Text style={styles.mobileEditButtonText}>
@@ -698,7 +746,9 @@ export default function AgentManagement() {
           activeOpacity={1}
           onPress={() => setIsEditModalOpen(false)}
         >
-          <View style={styles.modalContentCard}>
+          <View
+            style={[styles.modalContentCard, { width: isWeb ? 500 : "90%" }]}
+          >
             <LinearGradient
               colors={["#D95D29", "#c04e21"]}
               style={styles.modalGradientHeader}
@@ -796,7 +846,10 @@ export default function AgentManagement() {
           onPress={() => setIsAddModalOpen(false)}
         >
           <View
-            style={[styles.modalContentCard, { width: isWeb ? 550 : "100%" }]}
+            style={[
+              styles.modalContentCard,
+              { width: isWeb ? 520 : "92%", maxWidth: 550 },
+            ]}
           >
             <LinearGradient
               colors={["#D95D29", "#c04e21"]}
@@ -810,7 +863,11 @@ export default function AgentManagement() {
               </Text>
             </LinearGradient>
 
-            <View style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalFormScroll}
+              contentContainerStyle={styles.modalFormScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Full Name *</Text>
                 <View style={styles.formInputContainer}>
@@ -833,7 +890,7 @@ export default function AgentManagement() {
                   <Ionicons name="mail-outline" size={18} color="#9ca3af" />
                   <TextInput
                     style={styles.formInput}
-                    placeholder="agent@spacezant.com"
+                    placeholder="agent@kontako.com"
                     placeholderTextColor="#9ca3af"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -927,7 +984,7 @@ export default function AgentManagement() {
                   ))}
                 </View>
               </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
@@ -970,44 +1027,46 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
   },
   scrollContent: {
-    padding: isWeb ? 24 : 16,
+    padding: isWeb ? 24 : 14,
     paddingBottom: 40,
   },
   headerSection: {
     flexDirection: isWeb ? "row" : "column",
     justifyContent: "space-between",
     alignItems: isWeb ? "center" : "flex-start",
-    marginBottom: 24,
-    gap: 16,
+    marginBottom: isWeb ? 24 : 16,
+    gap: isWeb ? 16 : 10,
   },
   pageTitle: {
-    fontSize: 28,
+    fontSize: isWeb ? 28 : 22,
     fontWeight: "900",
     color: "#111111",
   },
   pageSubtitle: {
-    fontSize: 14,
+    fontSize: isWeb ? 14 : 12,
     color: "#6b7280",
-    marginTop: 4,
+    marginTop: 2,
   },
   addButton: {
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: "hidden",
+    width: isWeb ? "auto" : "100%",
   },
   addButtonGradient: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: isWeb ? 12 : 10,
   },
   addButtonText: {
     color: "white",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
   metricsGrid: {
-    flexDirection: isWeb ? "row" : "column",
+    flexDirection: "row",
     gap: 16,
     marginBottom: 24,
   },
@@ -1017,16 +1076,37 @@ const styles = StyleSheet.create({
     padding: 16,
     overflow: "hidden",
   },
+  metricsCarousel: {
+    marginBottom: 16,
+    marginHorizontal: -14,
+  },
+  metricsCarouselContent: {
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  metricCarouselCard: {
+    width: width * 0.44,
+    borderRadius: 12,
+    padding: 12,
+  },
   metricHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 8,
   },
   metricIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  metricIconContainerMobile: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
     backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
@@ -1038,22 +1118,38 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     flex: 1,
   },
+  metricLabelMobile: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.8)",
+    flex: 1,
+  },
   metricValue: {
     fontSize: 32,
     fontWeight: "900",
     color: "white",
     marginBottom: 4,
   },
+  metricValueMobile: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "white",
+    marginBottom: 2,
+  },
   metricSubtext: {
     fontSize: 11,
+    color: "rgba(255,255,255,0.7)",
+  },
+  metricSubtextMobile: {
+    fontSize: 10,
     color: "rgba(255,255,255,0.7)",
   },
   toolbarContainer: {
     flexDirection: isWeb ? "row" : "column",
     justifyContent: "space-between",
     alignItems: isWeb ? "center" : "stretch",
-    gap: 16,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 16,
   },
   searchSection: {
     flex: 1,
@@ -1062,22 +1158,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    paddingHorizontal: 14,
-    height: 44,
-    gap: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: "#111111",
+    padding: 0,
   },
   filterSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
   filterLabel: {
     fontSize: 13,
@@ -1086,13 +1183,12 @@ const styles = StyleSheet.create({
   },
   statusFiltersWrapper: {
     flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
+    gap: 6,
   },
   statusTabChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#e5e7eb",
@@ -1102,7 +1198,7 @@ const styles = StyleSheet.create({
     borderColor: "#111111",
   },
   statusTabChipText: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: "600",
     color: "#6b7280",
   },
@@ -1110,55 +1206,52 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   statusCount: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "400",
   },
   ledgerWrapperCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: isWeb ? 24 : 16,
+    padding: 24,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+  },
+  mobileLedgerContainer: {
+    backgroundColor: "transparent",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   ledgerHeading: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
     color: "#111111",
   },
   ledgerSubheading: {
     fontSize: 12,
     color: "#6b7280",
-    marginTop: 2,
   },
   exportButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
     backgroundColor: "#fef3f0",
   },
   exportButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     color: "#D95D29",
   },
   horizontalDivider: {
     height: 1,
     backgroundColor: "#e5e7eb",
-    marginVertical: 16,
+    marginVertical: 12,
   },
   tableWrapper: {
     width: "100%",
@@ -1249,57 +1342,103 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   mobileCardsStream: {
-    gap: 14,
+    gap: 10,
+    marginTop: 8,
   },
   mobileAgentCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    padding: 16,
+    padding: 12,
   },
-  cardHeaderRow: {
+  cardHeaderRowMobile: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 4,
   },
   mobileCardId: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
     color: "#D95D29",
   },
   mobileCardName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     color: "#111111",
   },
   mobileCardEmail: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6b7280",
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  cardDetailsBox: {
+  cardDetailsBoxMobile: {
     backgroundColor: "#f9fafb",
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-    marginBottom: 16,
+    borderRadius: 8,
+    padding: 10,
+    gap: 10,
+    marginBottom: 10,
   },
-  detailRow: {
+  detailRowMobile: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  detailFieldLabel: {
+  detailFieldValueMobile: {
     fontSize: 12,
-    color: "#6b7280",
+    color: "#374151",
     fontWeight: "500",
   },
-  detailFieldValue: {
-    fontSize: 12,
-    color: "#111111",
+  permissionBadgeMobile: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  permissionTextMobile: {
+    fontSize: 10,
     fontWeight: "600",
+  },
+  statusBadgeMobile: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  statusBadgeTextMobile: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  metricsSplitRowMobile: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    paddingTop: 8,
+  },
+  metricItemMobile: {
+    flex: 1,
+    alignItems: "center",
+  },
+  metricCountLabelMobile: {
+    fontSize: 10,
+    color: "#6b7280",
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  metricCountValueMobileOrange: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#D95D29",
+  },
+  metricCountValueMobileGreen: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#10b981",
   },
   mobileCardActionsRow: {
     flexDirection: "row",
@@ -1308,37 +1447,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#111111",
     flexDirection: "row",
-    height: 44,
-    borderRadius: 10,
+    height: 36,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   mobileEditButtonText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
   },
   modalContentCard: {
     backgroundColor: "#FFFFFF",
-    width: isWeb ? 500 : "100%",
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    maxHeight: height * 0.82,
   },
   modalGradientHeader: {
-    padding: 24,
+    padding: 20,
   },
   modalHeadingTitle: {
     fontSize: 20,
@@ -1352,6 +1485,14 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 24,
+  },
+  modalFormScroll: {
+    flex: undefined,
+    maxHeight: height * 0.55,
+  },
+  modalFormScrollContent: {
+    padding: 20,
+    paddingBottom: 10,
   },
   selectedDossierBox: {
     backgroundColor: "#f9fafb",
@@ -1422,9 +1563,10 @@ const styles = StyleSheet.create({
   modalFooter: {
     flexDirection: "row",
     gap: 12,
-    padding: 24,
+    padding: 20,
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
   },
   modalCancelButton: {
     flex: 1,
@@ -1456,9 +1598,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-  // Form styles for Add Agent Modal
   formGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   formLabel: {
     fontSize: 13,
@@ -1474,18 +1615,19 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     borderRadius: 10,
     paddingHorizontal: 14,
-    height: 48,
+    height: 46,
     gap: 10,
   },
   formInput: {
     flex: 1,
     fontSize: 14,
     color: "#111111",
+    padding: 0,
   },
   formRow: {
     flexDirection: "row",
     gap: 16,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statusSelector: {
     flexDirection: "row",

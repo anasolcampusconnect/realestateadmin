@@ -11,7 +11,7 @@ import {
     View,
 } from "react-native";
 
-const { width } = Dimensions.get("window");
+const { width, height: screenHeight } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 1024;
 
 interface AdminOption {
@@ -74,12 +74,10 @@ export default function AdminLayout({
     setIsDrawerOpen(false);
 
     // --- STACK POOL CLEARING BREAKOUT PIPELINE ---
-    // 1. First dismiss all active stacked presentation layouts down to the root
     if (router.canDismiss()) {
       router.dismissAll();
     }
 
-    // 2. Clear out the rest of the workspace history and force mount index layout cleanly
     router.replace("/");
   };
 
@@ -185,7 +183,7 @@ export default function AdminLayout({
       {/* --- CROSS-PLATFORM MOBILE COLLAPSIBLE DRAWER --- */}
       {!isWeb && (
         <Modal
-          animationType="fade"
+          animationType="slide"
           transparent={true}
           visible={isDrawerOpen}
           onRequestClose={() => setIsDrawerOpen(false)}
@@ -254,7 +252,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F3F3",
   },
   appHeader: {
-    height: 70,
+    // FIXED: Increased structural height and dynamically added standard device padding clearance layout for Android pipelines
+    height: Platform.OS === "android" ? 95 : 70,
+    paddingTop: Platform.OS === "android" ? 28 : 0,
     backgroundColor: "#111111",
     flexDirection: "row",
     justifyContent: "space-between",
@@ -353,6 +353,7 @@ const styles = StyleSheet.create({
   drawerInner: {
     flex: 1,
     backgroundColor: "#111111",
+    height: "100%", // FIXED: Stretches component children seamlessly vertically
   },
   drawerHeader: {
     flexDirection: "row",
@@ -438,18 +439,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: "#222222",
     backgroundColor: "#0a0a0a",
-  },
-  operatorLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#475569",
-    letterSpacing: 0.5,
-  },
-  operatorValue: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#cbd5e1",
-    marginTop: 2,
+    paddingBottom: Platform.OS === "android" ? 30 : 20, // Clean safe distance spacing from Android lower navigation layout pill shape
   },
   workspaceShell: {
     flex: 1,
@@ -458,12 +448,12 @@ const styles = StyleSheet.create({
   drawerModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     flexDirection: "row",
   },
   mobileDrawerPanel: {
     width: 260,
-    height: "100%",
+    height: screenHeight, // FIXED: Absolute stretch override to lock panel boundaries down to screen viewport edge
     backgroundColor: "#111111",
     alignSelf: "flex-start",
   },
@@ -476,7 +466,7 @@ const styles = StyleSheet.create({
   },
   blackModalCard: {
     backgroundColor: "#111111",
-    width: width > 480 ? 400 : "100%",
+    width: Platform.OS === "web" && width > 480 ? 400 : "90%",
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,

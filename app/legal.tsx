@@ -180,7 +180,7 @@ export default function LegalVerification() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Enhanced Header Section */}
+        {/* Responsive Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIconContainer}>
@@ -191,7 +191,7 @@ export default function LegalVerification() {
                 <Ionicons name="shield-checkmark" size={24} color="white" />
               </LinearGradient>
             </View>
-            <View>
+            <View style={styles.headerTitleWrap}>
               <Text style={styles.mainTitleText}>Legal Verification</Text>
               <Text style={styles.subtitleText}>
                 Validate ownership deeds, execute digital sign-offs, and monitor
@@ -218,13 +218,8 @@ export default function LegalVerification() {
           ]}
         >
           {/* LEFT SECTION: Asset Dossier & Documents */}
-          <View
-            style={[
-              styles.leftContentColumn,
-              isWeb ? { width: "63%" } : { width: "100%" },
-            ]}
-          >
-            {/* Enhanced Asset Dossier Card */}
+          <View style={isWeb ? styles.leftColumnWeb : styles.fullWidthColumn}>
+            {/* Asset Dossier Card */}
             <LinearGradient
               colors={["#ffffff", "#fefaf8"]}
               style={styles.dossierCard}
@@ -304,7 +299,7 @@ export default function LegalVerification() {
               </View>
             </LinearGradient>
 
-            {/* Enhanced Documents Section */}
+            {/* Documents Section Heading */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionHeading}>Legal Documents</Text>
               <TouchableOpacity style={styles.uploadButton}>
@@ -313,6 +308,7 @@ export default function LegalVerification() {
               </TouchableOpacity>
             </View>
 
+            {/* Documents List */}
             <View style={styles.documentsListCard}>
               {legalDocuments.map((doc, index) => {
                 const statusConfig = getStatusConfig(doc.verificationStatus);
@@ -325,49 +321,51 @@ export default function LegalVerification() {
                         styles.lastDocumentRow,
                     ]}
                   >
-                    <View style={styles.docIconContainer}>
-                      <LinearGradient
-                        colors={["#fef3f0", "#fde8e0"]}
-                        style={styles.docIconGradient}
-                      >
-                        <Ionicons
-                          name="document-text"
-                          size={20}
-                          color="#D95D29"
-                        />
-                      </LinearGradient>
-                    </View>
-                    <View style={styles.docMetaColumn}>
-                      <View style={styles.docHeaderRow}>
-                        <Text style={styles.docIdText}>{doc.docId}</Text>
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            { backgroundColor: statusConfig.bg },
-                          ]}
+                    <View style={styles.docLeftRowBlock}>
+                      <View style={styles.docIconContainer}>
+                        <LinearGradient
+                          colors={["#fef3f0", "#fde8e0"]}
+                          style={styles.docIconGradient}
                         >
                           <Ionicons
-                            name={statusConfig.icon as any}
-                            size={10}
-                            color={statusConfig.text}
+                            name="document-text"
+                            size={20}
+                            color="#D95D29"
                           />
-                          <Text
+                        </LinearGradient>
+                      </View>
+                      <View style={styles.docMetaColumn}>
+                        <View style={styles.docHeaderRow}>
+                          <Text style={styles.docIdText}>{doc.docId}</Text>
+                          <View
                             style={[
-                              styles.statusBadgeText,
-                              { color: statusConfig.text },
+                              styles.statusBadge,
+                              { backgroundColor: statusConfig.bg },
                             ]}
                           >
-                            {statusConfig.label}
+                            <Ionicons
+                              name={statusConfig.icon as any}
+                              size={10}
+                              color={statusConfig.text}
+                            />
+                            <Text
+                              style={[
+                                styles.statusBadgeText,
+                                { color: statusConfig.text },
+                              ]}
+                            >
+                              {statusConfig.label}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.docTypeText}>{doc.docType}</Text>
+                        <Text style={styles.docFileName}>{doc.fileName}</Text>
+                        <View style={styles.docDateRow}>
+                          <Ionicons name="time" size={10} color="#9ca3af" />
+                          <Text style={styles.docDateLabel}>
+                            Uploaded: {doc.uploadedDate}
                           </Text>
                         </View>
-                      </View>
-                      <Text style={styles.docTypeText}>{doc.docType}</Text>
-                      <Text style={styles.docFileName}>{doc.fileName}</Text>
-                      <View style={styles.docDateRow}>
-                        <Ionicons name="time" size={10} color="#9ca3af" />
-                        <Text style={styles.docDateLabel}>
-                          Uploaded: {doc.uploadedDate}
-                        </Text>
                       </View>
                     </View>
                     <TouchableOpacity
@@ -386,14 +384,8 @@ export default function LegalVerification() {
             </View>
           </View>
 
-          {/* RIGHT SECTION: Compliance & Sign-off */}
-          <View
-            style={[
-              styles.rightContentColumn,
-              isWeb ? { width: "34%" } : { width: "100%" },
-            ]}
-          >
-            {/* Compliance Progress Card */}
+          {/* RIGHT SECTION: Compliance Checkbox, Remarks & Sign-off Pipeline */}
+          <View style={isWeb ? styles.rightColumnWeb : styles.fullWidthColumn}>
             <LinearGradient
               colors={["#ffffff", "#f9fafb"]}
               style={styles.complianceCard}
@@ -467,7 +459,6 @@ export default function LegalVerification() {
                 />
               </View>
 
-              {/* Enhanced Action Buttons */}
               <View style={styles.actionPipelineRow}>
                 <TouchableOpacity
                   style={styles.flagRejectButton}
@@ -498,7 +489,7 @@ export default function LegalVerification() {
               </View>
             </LinearGradient>
 
-            {/* Quick Stats Card */}
+            {/* Quick Summary Tracker Metrics Card */}
             <LinearGradient
               colors={["#111111", "#1a1a2e"]}
               style={styles.statsCard}
@@ -507,7 +498,7 @@ export default function LegalVerification() {
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Text style={styles.statNumber}>4</Text>
-                  <Text style={styles.statLabel}>Total Documents</Text>
+                  <Text style={styles.statLabel}>Total Docs</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
@@ -521,7 +512,7 @@ export default function LegalVerification() {
                   <Text style={[styles.statNumber, { color: "#f59e0b" }]}>
                     1
                   </Text>
-                  <Text style={styles.statLabel}>Under Review</Text>
+                  <Text style={styles.statLabel}>Review</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
@@ -548,7 +539,12 @@ export default function LegalVerification() {
           activeOpacity={1}
           onPress={() => setIsPreviewModalOpen(false)}
         >
-          <View style={styles.modalContentCard}>
+          <View
+            style={[
+              styles.modalContentCard,
+              !isWeb && styles.modalMobileAdaptive,
+            ]}
+          >
             <LinearGradient
               colors={["#D95D29", "#c04e21"]}
               style={styles.modalGradientHeader}
@@ -613,7 +609,10 @@ export default function LegalVerification() {
           onPress={() => setIsSignOffModalOpen(false)}
         >
           <View
-            style={[styles.modalContentCard, { width: isWeb ? 450 : "100%" }]}
+            style={[
+              styles.modalContentCard,
+              isWeb ? { width: 450 } : styles.modalMobileAdaptive,
+            ]}
           >
             <LinearGradient
               colors={["#D95D29", "#c04e21"]}
@@ -692,7 +691,7 @@ const styles = StyleSheet.create({
   headerSection: {
     flexDirection: isWeb ? "row" : "column",
     justifyContent: "space-between",
-    alignItems: isWeb ? "center" : "flex-start",
+    alignItems: isWeb ? "center" : "stretch",
     marginBottom: 24,
     gap: 16,
   },
@@ -700,6 +699,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
+    flex: 1,
+  },
+  headerTitleWrap: {
+    flex: 1,
   },
   headerIconContainer: {
     borderRadius: 14,
@@ -726,6 +729,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    alignSelf: isWeb ? "auto" : "flex-start",
   },
   headerStat: {
     flexDirection: "row",
@@ -753,10 +757,16 @@ const styles = StyleSheet.create({
   columnLayout: {
     flexDirection: "column",
   },
-  leftContentColumn: {
+  leftColumnWeb: {
+    flex: 1.8,
     gap: 20,
   },
-  rightContentColumn: {
+  rightColumnWeb: {
+    flex: 1,
+    gap: 20,
+  },
+  fullWidthColumn: {
+    width: "100%",
     gap: 20,
   },
   dossierCard: {
@@ -775,6 +785,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    flexWrap: "wrap",
+    gap: 8,
   },
   dossierBadgeContainer: {
     borderRadius: 8,
@@ -823,12 +835,12 @@ const styles = StyleSheet.create({
   metadataGridRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 20,
+    gap: 16,
     marginBottom: 16,
   },
   metaDataBlock: {
     flex: 1,
-    minWidth: 120,
+    minWidth: isWeb ? 140 : "45%",
   },
   metaIconContainer: {
     marginBottom: 6,
@@ -871,6 +883,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
+    marginTop: 8,
   },
   sectionHeading: {
     fontSize: 16,
@@ -899,11 +912,17 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   documentRowItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: isWeb ? "row" : "column",
+    alignItems: isWeb ? "center" : "stretch",
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
+    gap: 14,
+  },
+  docLeftRowBlock: {
+    flexDirection: "row",
+    flex: 1,
+    alignItems: "flex-start",
   },
   lastDocumentRow: {
     borderBottomWidth: 0,
@@ -926,6 +945,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     marginBottom: 6,
+    flexWrap: "wrap",
   },
   docIdText: {
     fontSize: 11,
@@ -967,11 +987,13 @@ const styles = StyleSheet.create({
   previewButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: "#fef3f0",
     borderRadius: 8,
+    alignSelf: isWeb ? "auto" : "flex-end",
   },
   previewLinkText: {
     fontSize: 12,
@@ -1082,9 +1104,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginTop: 20,
+    flexWrap: isWeb ? "nowrap" : "wrap",
   },
   flagRejectButton: {
     flex: 1,
+    minWidth: 120,
     height: 44,
     borderRadius: 10,
     borderWidth: 1,
@@ -1101,7 +1125,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   approveSignoffButton: {
-    flex: 1.2,
+    flex: 1.3,
+    minWidth: 140,
     borderRadius: 10,
     overflow: "hidden",
   },
@@ -1137,7 +1162,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "900",
     color: "white",
   },
@@ -1169,6 +1194,11 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  modalMobileAdaptive: {
+    width: "100%",
+    maxWidth: 380,
+    borderRadius: 16,
+  },
   modalGradientHeader: {
     padding: 20,
   },
@@ -1194,6 +1224,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111111",
     marginBottom: 4,
+    textAlign: "center",
   },
   previewSubtitle: {
     fontSize: 12,
@@ -1205,6 +1236,7 @@ const styles = StyleSheet.create({
     color: "#D95D29",
     fontWeight: "500",
     marginBottom: 12,
+    textAlign: "center",
   },
   previewMeta: {
     marginBottom: 20,
@@ -1261,6 +1293,7 @@ const styles = StyleSheet.create({
   signoffDetailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    gap: 10,
   },
   signoffDetailLabel: {
     fontSize: 12,
@@ -1271,6 +1304,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#111111",
+    textAlign: "right",
+    flex: 1,
   },
   modalFooter: {
     flexDirection: "row",

@@ -1,7 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
+    Alert,
     Dimensions,
     Image,
+    Modal,
     Platform,
     ScrollView,
     StyleSheet,
@@ -10,12 +14,11 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import AdminLayout from "../components/AdminLayout"; // Shared shell layout component import
+import AdminLayout from "../components/AdminLayout";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 1024;
 
-// Type definition for properties structures
 interface PropertyItem {
   id: string;
   title: string;
@@ -34,9 +37,25 @@ export default function PropertiesDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTypeFilter, setActiveTypeFilter] = useState<string>("All");
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>("All");
+  const [selectedProperty, setSelectedProperty] = useState<PropertyItem | null>(
+    null,
+  );
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Premium cross-platform mockup datasets
-  const propertiesData: PropertyItem[] = [
+  // Form State for dynamic new listing configurations
+  const [newProperty, setNewProperty] = useState({
+    title: "",
+    location: "",
+    price: "",
+    type: "Apartment" as "Villa" | "Penthouse" | "Apartment" | "Commercial",
+    beds: "",
+    baths: "",
+    sqft: "",
+    agent: "",
+  });
+
+  const [propertiesData, setPropertiesData] = useState<PropertyItem[]>([
     {
       id: "PRP-4021",
       title: "Skyline Luxury Penthouse",
@@ -97,7 +116,7 @@ export default function PropertiesDirectory() {
       id: "PRP-3029",
       title: "Serene Meadows Apartment",
       location: "Banjara Hills, Hyderabad",
-      price: "185,000.00",
+      price: "$185,000.00",
       type: "Apartment",
       status: "Pending",
       beds: 3,
@@ -107,9 +126,56 @@ export default function PropertiesDirectory() {
         "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=600&q=80",
       agent: "Sneha Reddy",
     },
-  ];
+  ]);
 
-  // Structural dynamic processing pipeline filters
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case "Approved":
+        return {
+          bg: "rgba(16, 185, 129, 0.12)",
+          text: "#10b981",
+          icon: "checkmark-circle",
+          label: "Approved",
+        };
+      case "Pending":
+        return {
+          bg: "rgba(245, 158, 11, 0.12)",
+          text: "#f59e0b",
+          icon: "time",
+          label: "Pending",
+        };
+      case "Rejected":
+        return {
+          bg: "rgba(239, 68, 68, 0.12)",
+          text: "#ef4444",
+          icon: "close-circle",
+          label: "Rejected",
+        };
+      default:
+        return {
+          bg: "#f3f4f6",
+          text: "#6b7280",
+          icon: "help-circle",
+          label: "Unknown",
+        };
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "Villa":
+        return "home";
+      case "Penthouse":
+        return "business";
+      case "Apartment":
+        return "business";
+      case "Commercial":
+        return "storefront";
+      default:
+        return "home";
+    }
+  };
+
   const filteredProperties = propertiesData.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -124,44 +190,263 @@ export default function PropertiesDirectory() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
+  const metrics = {
+    total: propertiesData.length,
+    approved: propertiesData.filter((p) => p.status === "Approved").length,
+    pending: propertiesData.filter((p) => p.status === "Pending").length,
+    rejected: propertiesData.filter((p) => p.status === "Rejected").length,
+    totalValue: "$2.68M",
+  };
+
+  const handleAudit = (property: PropertyItem) => {
+    setSelectedProperty(property);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCreateProperty = () => {
+    if (
+      !newProperty.title.trim() ||
+      !newProperty.location.trim() ||
+      !newProperty.price.trim() ||
+      !newProperty.agent.trim()
+    ) {
+      Alert.alert(
+        "Error",
+        "Please fill in all required operational profile fields.",
+      );
+      return;
+    }
+
+    const newId = `PRP-${Math.floor(Math.random() * 9000) + 1000}`;
+    const propertyToAdd: PropertyItem = {
+      id: newId,
+      title: newProperty.title,
+      location: newProperty.location,
+      price: newProperty.price.startsWith("$")
+        ? newProperty.price
+        : `$${newProperty.price}`,
+      type: newProperty.type,
+      status: "Pending",
+      beds: parseInt(newProperty.beds) || 0,
+      baths: parseInt(newProperty.baths) || 0,
+      sqft: parseInt(newProperty.sqft) || 0,
+      image:
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+      agent: newProperty.agent,
+    };
+
+    setPropertiesData((prev) => [propertyToAdd, ...prev]);
+    setIsAddModalOpen(false);
+
+    setNewProperty({
+      title: "",
+      location: "",
+      price: "",
+      type: "Apartment",
+      beds: "",
+      baths: "",
+      sqft: "",
+      agent: "",
+    });
+
+    Alert.alert(
+      "Success",
+      `Property asset ${newId} has been queued for verification loops successfully.`,
+    );
+  };
+
   return (
     <AdminLayout currentPageLabel="Property Approvals">
       <ScrollView
         style={styles.windowContainer}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* --- DASHBOARD SUB-HEADER BREADCRUMB --- */}
-        <View style={styles.breadcrumbHeader}>
-          <View>
-            <Text style={styles.mainTitleText}>
-              Real Estate Assets Pipeline
-            </Text>
-            <Text style={styles.subtitleText}>
-              Manage, audit, and approve real estate listings across all
-              sectors.
-            </Text>
+        {/* Enhanced Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerLeft}>
+            <View style={styles.headerIconContainer}>
+              <LinearGradient
+                colors={["#D95D29", "#c04e21"]}
+                style={styles.headerIconGradient}
+              >
+                <Ionicons name="business" size={24} color="white" />
+              </LinearGradient>
+            </View>
+            <View style={{ flex: isWeb ? undefined : 1 }}>
+              <Text style={styles.mainTitleText}>Properties Directory</Text>
+              <Text style={styles.subtitleText}>
+                Manage, audit, and approve real estate listings across all
+                sectors
+              </Text>
+            </View>
           </View>
-          {isWeb && (
-            <TouchableOpacity style={styles.addPropertyButton}>
-              <Text style={styles.addBtnText}>＋ Add Direct Asset</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.addPropertyButton}
+            onPress={() => setIsAddModalOpen(true)}
+          >
+            <LinearGradient
+              colors={["#D95D29", "#c04e21"]}
+              style={styles.addButtonGradient}
+            >
+              <Ionicons name="add" size={18} color="white" />
+              <Text style={styles.addBtnText}>Add Property</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
-        {/* --- REAL-TIME DATA QUERY FILTER SHELF --- */}
+        {/* Metrics Summary Row */}
+        {isWeb ? (
+          <View style={styles.metricsGrid}>
+            <LinearGradient
+              colors={["#ffffff", "#f9fafb"]}
+              style={styles.metricCard}
+            >
+              <View style={[styles.metricIcon, { backgroundColor: "#fef3f0" }]}>
+                <Ionicons name="grid" size={22} color="#D95D29" />
+              </View>
+              <View>
+                <Text style={styles.metricValue}>{metrics.total}</Text>
+                <Text style={styles.metricLabel}>Total Properties</Text>
+              </View>
+            </LinearGradient>
+            <LinearGradient
+              colors={["#ffffff", "#f9fafb"]}
+              style={styles.metricCard}
+            >
+              <View
+                style={[
+                  styles.metricIcon,
+                  { backgroundColor: "rgba(16, 185, 129, 0.1)" },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={22} color="#10b981" />
+              </View>
+              <View>
+                <Text style={styles.metricValue}>{metrics.approved}</Text>
+                <Text style={styles.metricLabel}>Approved</Text>
+              </View>
+            </LinearGradient>
+            <LinearGradient
+              colors={["#ffffff", "#f9fafb"]}
+              style={styles.metricCard}
+            >
+              <View
+                style={[
+                  styles.metricIcon,
+                  { backgroundColor: "rgba(245, 158, 11, 0.1)" },
+                ]}
+              >
+                <Ionicons name="time" size={22} color="#f59e0b" />
+              </View>
+              <View>
+                <Text style={styles.metricValue}>{metrics.pending}</Text>
+                <Text style={styles.metricLabel}>Pending Review</Text>
+              </View>
+            </LinearGradient>
+            <LinearGradient
+              colors={["#ffffff", "#f9fafb"]}
+              style={styles.metricCard}
+            >
+              <View
+                style={[
+                  styles.metricIcon,
+                  { backgroundColor: "rgba(239, 68, 68, 0.1)" },
+                ]}
+              >
+                <Ionicons name="close-circle" size={22} color="#ef4444" />
+              </View>
+              <View>
+                <Text style={styles.metricValue}>{metrics.rejected}</Text>
+                <Text style={styles.metricLabel}>Rejected</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.metricsCarouselMobile}
+            contentContainerStyle={styles.metricsCarouselContentMobile}
+          >
+            <View style={styles.metricCardMobile}>
+              <View
+                style={[
+                  styles.metricIconMobile,
+                  { backgroundColor: "#fef3f0" },
+                ]}
+              >
+                <Ionicons name="grid" size={16} color="#D95D29" />
+              </View>
+              <View>
+                <Text style={styles.metricValueMobile}>{metrics.total}</Text>
+                <Text style={styles.metricLabelMobile}>Total</Text>
+              </View>
+            </View>
+            <View style={styles.metricCardMobile}>
+              <View
+                style={[
+                  styles.metricIconMobile,
+                  { backgroundColor: "rgba(16, 185, 129, 0.1)" },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+              </View>
+              <View>
+                <Text style={styles.metricValueMobile}>{metrics.approved}</Text>
+                <Text style={styles.metricLabelMobile}>Approved</Text>
+              </View>
+            </View>
+            <View style={styles.metricCardMobile}>
+              <View
+                style={[
+                  styles.metricIconMobile,
+                  { backgroundColor: "rgba(245, 158, 11, 0.1)" },
+                ]}
+              >
+                <Ionicons name="time" size={16} color="#f59e0b" />
+              </View>
+              <View>
+                <Text style={styles.metricValueMobile}>{metrics.pending}</Text>
+                <Text style={styles.metricLabelMobile}>Pending</Text>
+              </View>
+            </View>
+            <View style={styles.metricCardMobile}>
+              <View
+                style={[
+                  styles.metricIconMobile,
+                  { backgroundColor: "rgba(239, 68, 68, 0.1)" },
+                ]}
+              >
+                <Ionicons name="close-circle" size={16} color="#ef4444" />
+              </View>
+              <View>
+                <Text style={styles.metricValueMobile}>{metrics.rejected}</Text>
+                <Text style={styles.metricLabelMobile}>Rejected</Text>
+              </View>
+            </View>
+          </ScrollView>
+        )}
+
+        {/* Enhanced Filter Section */}
         <View style={styles.filterShelfCard}>
-          <View style={styles.searchRow}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#9ca3af" />
             <TextInput
-              style={styles.searchFieldInput}
-              placeholder="Search listings by unique token id, title keyword, or location region..."
-              placeholderTextColor="#888888"
+              style={styles.searchInput}
+              placeholder="Search by ID, title, or location..."
+              placeholderTextColor="#9ca3af"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            )}
           </View>
 
-          <View style={styles.filterButtonsSplitRow}>
-            {/* Category Type Filter List Segment */}
+          <View style={styles.filterRow}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -177,10 +462,17 @@ export default function PropertiesDirectory() {
                     ]}
                     onPress={() => setActiveTypeFilter(type)}
                   >
+                    {type !== "All" && (
+                      <Ionicons
+                        name={getTypeIcon(type) as any}
+                        size={12}
+                        color={activeTypeFilter === type ? "white" : "#6b7280"}
+                      />
+                    )}
                     <Text
                       style={[
                         styles.chipText,
-                        activeTypeFilter === type && styles.chipTextActive,
+                        activeTypeFilter === type && styles.chipActive,
                       ]}
                     >
                       {type}
@@ -190,33 +482,59 @@ export default function PropertiesDirectory() {
               )}
             </ScrollView>
 
-            {/* Verification Lifecycle Status Filters */}
-            <View style={styles.statusGroup}>
-              {["All", "Approved", "Pending", "Rejected"].map((status) => (
-                <TouchableOpacity
-                  key={status}
-                  style={[
-                    styles.statusChip,
-                    activeStatusFilter === status && styles.statusChipActive,
-                  ]}
-                  onPress={() => setActiveStatusFilter(status)}
-                >
-                  <Text
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.statusGroup}
+            >
+              {["All", "Approved", "Pending", "Rejected"].map((status) => {
+                const statusConfig = getStatusConfig(status);
+                return (
+                  <TouchableOpacity
+                    key={status}
                     style={[
-                      styles.statusChipText,
+                      styles.statusChip,
+                      activeStatusFilter === status && styles.statusChipActive,
                       activeStatusFilter === status &&
-                        styles.statusChipTextActive,
+                        status === "Approved" &&
+                        styles.statusChipActiveApproved,
+                      activeStatusFilter === status &&
+                        status === "Pending" &&
+                        styles.statusChipActivePending,
+                      activeStatusFilter === status &&
+                        status === "Rejected" &&
+                        styles.statusChipActiveRejected,
                     ]}
+                    onPress={() => setActiveStatusFilter(status)}
                   >
-                    {status}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    {status !== "All" && (
+                      <Ionicons
+                        name={statusConfig.icon as any}
+                        size={10}
+                        color={
+                          activeStatusFilter === status
+                            ? "white"
+                            : statusConfig.text
+                        }
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.statusChipText,
+                        activeStatusFilter === status &&
+                          styles.statusChipTextActive,
+                      ]}
+                    >
+                      {status}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         </View>
 
-        {/* --- RESPONSIVE DATA RENDERING MATRIX --- */}
+        {/* Properties Grid */}
         <View
           style={[
             styles.assetsGridContainer,
@@ -224,89 +542,536 @@ export default function PropertiesDirectory() {
           ]}
         >
           {filteredProperties.length > 0 ? (
-            filteredProperties.map((property) => (
-              <View
-                key={property.id}
-                style={[
-                  styles.propertyCardFrame,
-                  isWeb ? { width: "31.5%" } : { width: "100%" },
-                ]}
-              >
-                {/* Media Block Anchor */}
-                <View style={styles.cardImageContainer}>
-                  <Image
-                    source={{ uri: property.image }}
-                    style={styles.assetVisualImage}
-                  />
-                  <View style={styles.floatingIdBadge}>
-                    <Text style={styles.badgeIdText}>{property.id}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.lifecycleBadge,
-                      property.status === "Approved"
-                        ? styles.badgeGreen
-                        : property.status === "Pending"
-                          ? styles.badgeOrange
-                          : styles.badgeRed,
-                    ]}
-                  >
-                    <Text style={styles.lifecycleStatusText}>
-                      {property.status}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Text Description Segment Area */}
-                <View style={styles.cardDetailsPortion}>
-                  <Text style={styles.propertyPriceText}>{property.price}</Text>
-                  <Text style={styles.propertyTitleText} numberOfLines={1}>
-                    {property.title}
-                  </Text>
-                  <Text style={styles.propertyLocationText}>
-                    {property.location}
-                  </Text>
-
-                  <View style={styles.structuralSpecsRow}>
-                    <Text style={styles.specMetricElement}>
-                      🛏️ {property.beds} Bed
-                    </Text>
-                    <Text style={styles.specMetricElement}>
-                      🛁 {property.baths} Bath
-                    </Text>
-                    <Text style={styles.specMetricElement}>
-                      📐 {property.sqft} sqft
-                    </Text>
-                  </View>
-
-                  <View style={styles.horizontalCardLine} />
-
-                  <View style={styles.cardActionFooterRow}>
-                    <View>
-                      <Text style={styles.agentSubLabel}>SUBMITTING AGENT</Text>
-                      <Text style={styles.agentValueText}>
-                        {property.agent}
+            filteredProperties.map((property) => {
+              const statusConfig = getStatusConfig(property.status);
+              const typeIcon = getTypeIcon(property.type);
+              return (
+                <View
+                  key={property.id}
+                  style={[
+                    styles.propertyCardFrame,
+                    isWeb ? { width: "31.5%" } : { width: "100%" },
+                  ]}
+                >
+                  <View style={styles.cardImageContainer}>
+                    <Image
+                      source={{ uri: property.image }}
+                      style={styles.assetVisualImage}
+                    />
+                    <LinearGradient
+                      colors={["transparent", "rgba(0,0,0,0.7)"]}
+                      style={styles.imageOverlay}
+                    />
+                    <View style={styles.floatingIdBadge}>
+                      <Ionicons name="pricetag" size={10} color="white" />
+                      <Text style={styles.badgeIdText}>{property.id}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.lifecycleBadge,
+                        { backgroundColor: statusConfig.bg },
+                      ]}
+                    >
+                      <Ionicons
+                        name={statusConfig.icon as any}
+                        size={10}
+                        color={statusConfig.text}
+                      />
+                      <Text
+                        style={[
+                          styles.lifecycleStatusText,
+                          { color: statusConfig.text },
+                        ]}
+                      >
+                        {statusConfig.label}
                       </Text>
                     </View>
-                    <TouchableOpacity style={styles.auditTriggerButton}>
-                      <Text style={styles.auditBtnText}>Audit File</Text>
-                    </TouchableOpacity>
+                    <View style={styles.typeBadge}>
+                      <Ionicons
+                        name={typeIcon as any}
+                        size={10}
+                        color="white"
+                      />
+                      {/* FIXED: Added missing styles mapping link reference target */}
+                      <Text style={styles.typeBadgeText}>{property.type}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardDetailsPortion}>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.propertyPriceText}>
+                        {property.price}
+                      </Text>
+                      <View style={styles.ratingBadge}>
+                        <Ionicons name="star" size={12} color="#FFD700" />
+                        <Text style={styles.ratingText}>4.8</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.propertyTitleText} numberOfLines={1}>
+                      {property.title}
+                    </Text>
+                    <View style={styles.locationRow}>
+                      <Ionicons name="location" size={12} color="#9ca3af" />
+                      <Text
+                        style={styles.propertyLocationText}
+                        numberOfLines={1}
+                      >
+                        {property.location}
+                      </Text>
+                    </View>
+
+                    <View style={styles.structuralSpecsRow}>
+                      <View style={styles.specItem}>
+                        <Ionicons name="bed" size={12} color="#D95D29" />
+                        <Text style={styles.specMetricElement}>
+                          {property.beds} Beds
+                        </Text>
+                      </View>
+                      <View style={styles.specItem}>
+                        <Ionicons name="water" size={12} color="#D95D29" />
+                        <Text style={styles.specMetricElement}>
+                          {property.baths} Baths
+                        </Text>
+                      </View>
+                      <View style={styles.specItem}>
+                        <Ionicons name="resize" size={12} color="#D95D29" />
+                        <Text style={styles.specMetricElement}>
+                          {property.sqft} sqft
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.horizontalCardLine} />
+
+                    <View style={styles.cardActionFooterRow}>
+                      <View style={styles.agentInfo}>
+                        <View style={styles.agentAvatar}>
+                          <Text style={styles.agentInitial}>
+                            {property.agent.charAt(0)}
+                          </Text>
+                        </View>
+                        <View
+                          style={{ maxWidth: isWeb ? undefined : width * 0.35 }}
+                        >
+                          <Text style={styles.agentSubLabel}>
+                            Listing Agent
+                          </Text>
+                          <Text style={styles.agentValueText} numberOfLines={1}>
+                            {property.agent}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.auditTriggerButton}
+                        onPress={() => handleAudit(property)}
+                      >
+                        <LinearGradient
+                          colors={["#111111", "#1a1a2e"]}
+                          style={styles.auditButtonGradient}
+                        >
+                          <Ionicons name="eye" size={14} color="white" />
+                          <Text style={styles.auditBtnText}>Audit</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           ) : (
             <View style={styles.emptyStateFallbackView}>
+              <View style={styles.emptyStateIcon}>
+                <Ionicons name="business" size={48} color="#d1d5db" />
+              </View>
               <Text style={styles.fallbackPrimaryText}>
-                No Real Estate Records Located
+                No Properties Found
               </Text>
               <Text style={styles.fallbackSecondaryText}>
-                Modify your filter strings to view listing logs.
+                Try adjusting your search or filter criteria
               </Text>
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* Property Detail Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isDetailModalOpen}
+        onRequestClose={() => setIsDetailModalOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsDetailModalOpen(false)}
+        >
+          <View
+            style={[styles.modalContentCard, { width: isWeb ? 600 : "92%" }]}
+          >
+            <LinearGradient
+              colors={["#D95D29", "#c04e21"]}
+              style={styles.modalGradientHeader}
+            >
+              <View style={styles.modalHeaderRow}>
+                <Text style={styles.modalHeadingTitle}>Property Details</Text>
+                <TouchableOpacity onPress={() => setIsDetailModalOpen(false)}>
+                  <Ionicons name="close" size={24} color="white" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+
+            {selectedProperty && (
+              <ScrollView
+                style={styles.modalBody}
+                showsVerticalScrollIndicator={true}
+              >
+                <Image
+                  source={{ uri: selectedProperty.image }}
+                  style={styles.modalImage}
+                />
+
+                <View style={styles.modalContentInner}>
+                  <View style={styles.modalHeaderInfo}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={styles.modalPropertyTitle}>
+                        {selectedProperty.title}
+                      </Text>
+                      <View style={styles.modalLocationRow}>
+                        <Ionicons name="location" size={14} color="#9ca3af" />
+                        <Text style={styles.modalLocation}>
+                          {selectedProperty.location}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modalPrice}>
+                      {selectedProperty.price}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalDivider} />
+
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>
+                      Property Details
+                    </Text>
+                    <View style={styles.modalSpecsGrid}>
+                      <View style={styles.modalSpecItem}>
+                        <Ionicons name="bed" size={18} color="#D95D29" />
+                        <Text style={styles.modalSpecLabel}>Bedrooms</Text>
+                        <Text style={styles.modalSpecValue}>
+                          {selectedProperty.beds}
+                        </Text>
+                      </View>
+                      <View style={styles.modalSpecItem}>
+                        <Ionicons name="water" size={18} color="#D95D29" />
+                        <Text style={styles.modalSpecLabel}>Bathrooms</Text>
+                        <Text style={styles.modalSpecValue}>
+                          {selectedProperty.baths}
+                        </Text>
+                      </View>
+                      <View style={styles.modalSpecItem}>
+                        <Ionicons name="resize" size={18} color="#D95D29" />
+                        <Text style={styles.modalSpecLabel}>Area</Text>
+                        <Text style={styles.modalSpecValue}>
+                          {selectedProperty.sqft} sqft
+                        </Text>
+                      </View>
+                      <View style={styles.modalSpecItem}>
+                        <Ionicons name="pricetag" size={18} color="#D95D29" />
+                        <Text style={styles.modalSpecLabel}>Property ID</Text>
+                        <Text style={styles.modalSpecValue}>
+                          {selectedProperty.id}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>
+                      Agent Information
+                    </Text>
+                    <View style={styles.modalAgentCard}>
+                      <View style={styles.modalAgentAvatar}>
+                        <Text style={styles.modalAgentInitial}>
+                          {selectedProperty.agent.charAt(0)}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text style={styles.modalAgentName}>
+                          {selectedProperty.agent}
+                        </Text>
+                        <Text style={styles.modalAgentRole}>Listing Agent</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>
+                      Verification Status
+                    </Text>
+                    <View
+                      style={[
+                        styles.modalStatusBadge,
+                        {
+                          backgroundColor: getStatusConfig(
+                            selectedProperty.status,
+                          ).bg,
+                          alignSelf: "flex-start",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          getStatusConfig(selectedProperty.status).icon as any
+                        }
+                        size={14}
+                        color={getStatusConfig(selectedProperty.status).text}
+                      />
+                      <Text
+                        style={[
+                          styles.modalStatusText,
+                          {
+                            color: getStatusConfig(selectedProperty.status)
+                              .text,
+                          },
+                        ]}
+                      >
+                        {getStatusConfig(selectedProperty.status).label}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+            )}
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setIsDetailModalOpen(false)}
+              >
+                <Text style={styles.modalCloseText}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalActionButton}>
+                <LinearGradient
+                  colors={["#D95D29", "#c04e21"]}
+                  style={styles.modalActionGradient}
+                >
+                  <Text style={styles.modalActionText}>Start Audit</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Add New Property Modal Container Component */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isAddModalOpen}
+        onRequestClose={() => setIsAddModalOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsAddModalOpen(false)}
+        >
+          <View
+            style={[styles.modalContentCard, { width: isWeb ? 540 : "92%" }]}
+          >
+            <LinearGradient
+              colors={["#D95D29", "#c04e21"]}
+              style={styles.modalGradientHeader}
+            >
+              <View style={styles.modalHeaderRow}>
+                <Text style={styles.modalHeadingTitle}>
+                  Create Listing Profile
+                </Text>
+                <TouchableOpacity onPress={() => setIsAddModalOpen(false)}>
+                  <Ionicons name="close" size={24} color="white" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+
+            <ScrollView
+              style={styles.modalFormScroll}
+              contentContainerStyle={styles.modalFormScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Property Title *</Text>
+                <View style={styles.formInputContainer}>
+                  <Ionicons name="business-outline" size={18} color="#9ca3af" />
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g., Skyline Luxury Penthouse"
+                    placeholderTextColor="#9ca3af"
+                    value={newProperty.title}
+                    onChangeText={(text) =>
+                      setNewProperty({ ...newProperty, title: text })
+                    }
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Location Area *</Text>
+                <View style={styles.formInputContainer}>
+                  <Ionicons name="location-outline" size={18} color="#9ca3af" />
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g., Kukatpally, Hyderabad"
+                    placeholderTextColor="#9ca3af"
+                    value={newProperty.location}
+                    onChangeText={(text) =>
+                      setNewProperty({ ...newProperty, location: text })
+                    }
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={[styles.formGroup, { flex: 1 }]}>
+                  <Text style={styles.formLabel}>Price (USD) *</Text>
+                  <View style={styles.formInputContainer}>
+                    <Ionicons name="logo-usd" size={16} color="#9ca3af" />
+                    <TextInput
+                      style={styles.formInput}
+                      placeholder="550,000"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                      value={newProperty.price}
+                      onChangeText={(text) =>
+                        setNewProperty({ ...newProperty, price: text })
+                      }
+                    />
+                  </View>
+                </View>
+                <View style={[styles.formGroup, { flex: 1 }]}>
+                  <Text style={styles.formLabel}>Total Area (Sqft)</Text>
+                  <View style={styles.formInputContainer}>
+                    <Ionicons name="resize-outline" size={16} color="#9ca3af" />
+                    <TextInput
+                      style={styles.formInput}
+                      placeholder="3500"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                      value={newProperty.sqft}
+                      onChangeText={(text) =>
+                        setNewProperty({ ...newProperty, sqft: text })
+                      }
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Sector Classification Type</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.typeSelectorRow}
+                >
+                  {["Apartment", "Villa", "Penthouse", "Commercial"].map(
+                    (t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[
+                          styles.typeOptionCard,
+                          newProperty.type === t && styles.typeOptionCardActive,
+                        ]}
+                        onPress={() =>
+                          setNewProperty({ ...newProperty, type: t as any })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.typeOptionText,
+                            newProperty.type === t &&
+                              styles.typeOptionTextActive,
+                          ]}
+                        >
+                          {t}
+                        </Text>
+                      </TouchableOpacity>
+                    ),
+                  )}
+                </ScrollView>
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={[styles.formGroup, { flex: 1 }]}>
+                  <Text style={styles.formLabel}>Beds</Text>
+                  <View style={styles.formInputContainer}>
+                    <TextInput
+                      style={styles.formInput}
+                      placeholder="3"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                      value={newProperty.beds}
+                      onChangeText={(text) =>
+                        setNewProperty({ ...newProperty, beds: text })
+                      }
+                    />
+                  </View>
+                </View>
+                <View style={[styles.formGroup, { flex: 1 }]}>
+                  <Text style={styles.formLabel}>Baths</Text>
+                  <View style={styles.formInputContainer}>
+                    <TextInput
+                      style={styles.formInput}
+                      placeholder="2"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                      value={newProperty.baths}
+                      onChangeText={(text) =>
+                        setNewProperty({ ...newProperty, baths: text })
+                      }
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Assigned Agent Name *</Text>
+                <View style={styles.formInputContainer}>
+                  <Ionicons name="person-outline" size={18} color="#9ca3af" />
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="Enter agent's name"
+                    placeholderTextColor="#9ca3af"
+                    value={newProperty.agent}
+                    onChangeText={(text) =>
+                      setNewProperty({ ...newProperty, agent: text })
+                    }
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setIsAddModalOpen(false)}
+              >
+                <Text style={styles.modalCloseText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalActionButton}
+                onPress={handleCreateProperty}
+              >
+                <LinearGradient
+                  colors={["#D95D29", "#c04e21"]}
+                  style={styles.modalActionGradient}
+                >
+                  <Text style={styles.modalActionText}>Queue Listing</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </AdminLayout>
   );
 }
@@ -314,84 +1079,187 @@ export default function PropertiesDirectory() {
 const styles = StyleSheet.create({
   windowContainer: {
     flex: 1,
-    backgroundColor: "#F3F3F3",
-    padding: isWeb ? 32 : 16,
+    backgroundColor: "#f8f9fa",
   },
-  breadcrumbHeader: {
-    flexDirection: "row",
+  scrollContent: {
+    padding: isWeb ? 24 : 14,
+    paddingBottom: 40,
+  },
+  headerSection: {
+    flexDirection: isWeb ? "row" : "column",
     justifyContent: "space-between",
+    alignItems: isWeb ? "center" : "flex-start",
+    marginBottom: isWeb ? 24 : 16,
+    gap: isWeb ? 16 : 12,
+  },
+  headerLeft: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    gap: isWeb ? 16 : 12,
+  },
+  headerIconContainer: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  headerIconGradient: {
+    width: isWeb ? 52 : 44,
+    height: isWeb ? 52 : 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
   mainTitleText: {
-    fontSize: isWeb ? 26 : 20,
+    fontSize: isWeb ? 28 : 20,
     fontWeight: "900",
     color: "#111111",
   },
   subtitleText: {
-    fontSize: 13,
-    color: "#666666",
-    marginTop: 4,
+    fontSize: isWeb ? 14 : 12,
+    color: "#6b7280",
+    marginTop: 2,
   },
   addPropertyButton: {
-    backgroundColor: "#D95D29",
+    borderRadius: 10,
+    overflow: "hidden",
+    width: isWeb ? "auto" : "100%",
+  },
+  addButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: isWeb ? 12 : 10,
   },
   addBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+    color: "white",
     fontSize: 13,
+    fontWeight: "700",
+  },
+  metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    marginBottom: 24,
+  },
+  metricCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  metricsCarouselMobile: {
+    marginBottom: 16,
+    marginHorizontal: -14,
+  },
+  metricsCarouselContentMobile: {
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  metricCardMobile: {
+    width: width * 0.38,
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  metricIconMobile: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  metricValueMobile: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#111111",
+  },
+  metricLabelMobile: {
+    fontSize: 10,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  metricIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#111111",
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
   },
   filterShelfCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 20,
+    padding: isWeb ? 20 : 14,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginBottom: 24,
-    gap: 16,
+    borderColor: "#e5e7eb",
+    marginBottom: 16,
+    gap: 12,
   },
-  searchRow: {
-    backgroundColor: "#F9FAFB",
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
     borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    height: 46,
-    justifyContent: "center",
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    gap: 8,
   },
-  searchFieldInput: {
-    fontSize: 14,
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
     color: "#111111",
+    padding: 0,
   },
-  filterButtonsSplitRow: {
+  filterRow: {
     flexDirection: isWeb ? "row" : "column",
     justifyContent: "space-between",
     alignItems: isWeb ? "center" : "stretch",
-    gap: 16,
+    gap: 12,
   },
   filterGroup: {
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
   },
   chipButton: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#e5e7eb",
   },
   chipActive: {
     backgroundColor: "#111111",
     borderColor: "#111111",
   },
   chipText: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#4B5563",
+    color: "#4b5563",
   },
   chipTextActive: {
     color: "#FFFFFF",
@@ -399,33 +1267,46 @@ const styles = StyleSheet.create({
   statusGroup: {
     flexDirection: "row",
     gap: 6,
-    justifyContent: "flex-end",
   },
   statusChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#e5e7eb",
   },
   statusChipActive: {
-    borderColor: "#D95D29",
-    backgroundColor: "rgba(217, 93, 41, 0.05)",
+    backgroundColor: "#111111",
+    borderColor: "#111111",
+  },
+  statusChipActiveApproved: {
+    backgroundColor: "#10b981",
+    borderColor: "#10b981",
+  },
+  statusChipActivePending: {
+    backgroundColor: "#f59e0b",
+    borderColor: "#f59e0b",
+  },
+  statusChipActiveRejected: {
+    backgroundColor: "#ef4444",
+    borderColor: "#ef4444",
   },
   statusChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#6B7280",
+    color: "#6b7280",
   },
   statusChipTextActive: {
-    color: "#D95D29",
+    color: "#FFFFFF",
   },
   assetsGridContainer: {
     justifyContent: "flex-start",
     flexWrap: "wrap",
-    gap: 24,
-    paddingBottom: 60,
+    gap: isWeb ? 24 : 14,
   },
   rowLayout: {
     flexDirection: "row",
@@ -437,129 +1318,203 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#e5e7eb",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
+    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.04)",
     elevation: 2,
   },
   cardImageContainer: {
     width: "100%",
-    height: 200,
+    height: isWeb ? 200 : 170,
     position: "relative",
   },
   assetVisualImage: {
     width: "100%",
     height: "100%",
   },
+  imageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
   floatingIdBadge: {
     position: "absolute",
-    top: 12,
-    left: 12,
-    backgroundColor: "rgba(17, 17, 17, 0.75)",
-    paddingHorizontal: 10,
+    top: 10,
+    left: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   badgeIdText: {
     color: "#FFFFFF",
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "700",
   },
   lifecycleBadge: {
     position: "absolute",
-    top: 12,
-    right: 12,
-    paddingHorizontal: 10,
+    top: 10,
+    right: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  badgeGreen: {
-    backgroundColor: "#10B981",
-  },
-  badgeOrange: {
-    backgroundColor: "#F59E0B",
-  },
-  badgeRed: {
-    backgroundColor: "#EF4444",
-  },
   lifecycleStatusText: {
-    color: "#FFFFFF",
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "700",
-    textTransform: "uppercase",
+  },
+  typeBadge: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    backgroundColor: "rgba(217, 93, 41, 0.9)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  typeBadgeText: {
+    color: "white",
+    fontSize: 10.5,
+    fontWeight: "700",
   },
   cardDetailsPortion: {
-    padding: 18,
+    padding: isWeb ? 16 : 12,
+  },
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
   },
   propertyPriceText: {
-    fontSize: 20,
+    fontSize: isWeb ? 20 : 17,
     fontWeight: "900",
     color: "#D95D29",
   },
+  ratingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#fef3f0",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  ratingText: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    color: "#D95D29",
+  },
   propertyTitleText: {
-    fontSize: 15,
+    fontSize: isWeb ? 16 : 14,
     fontWeight: "700",
     color: "#111111",
-    marginTop: 6,
+    marginBottom: 4,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 10,
   },
   propertyLocationText: {
     fontSize: 12,
-    color: "#6B7280",
-    marginTop: 2,
+    color: "#6b7280",
+    flex: 1,
   },
   structuralSpecsRow: {
     flexDirection: "row",
-    gap: 14,
-    marginTop: 14,
+    gap: 10,
+    marginBottom: 10,
+  },
+  specItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   specMetricElement: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "600",
-    color: "#4B5563",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    color: "#4b5563",
   },
   horizontalCardLine: {
     height: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 14,
+    backgroundColor: "#e5e7eb",
+    marginVertical: 10,
   },
   cardActionFooterRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  agentSubLabel: {
-    fontSize: 10,
+  agentInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  agentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fef3f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  agentInitial: {
+    fontSize: 13,
     fontWeight: "700",
-    color: "#9CA3AF",
+    color: "#D95D29",
+  },
+  agentSubLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#9ca3af",
     letterSpacing: 0.3,
   },
   agentValueText: {
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: "700",
     color: "#111111",
-    marginTop: 1,
   },
   auditTriggerButton: {
-    backgroundColor: "#111111",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
     borderRadius: 6,
+    overflow: "hidden",
+  },
+  auditButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   auditBtnText: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "700",
   },
   emptyStateFallbackView: {
     width: "100%",
     padding: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  emptyStateIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#f3f4f6",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -570,7 +1525,253 @@ const styles = StyleSheet.create({
   },
   fallbackSecondaryText: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#6b7280",
+  },
+  mobileLedgerContainer: {
+    backgroundColor: "transparent",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContentCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    overflow: "hidden",
+    boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.25)",
+    elevation: 10,
+    maxHeight: height * 0.82,
+  },
+  modalGradientHeader: {
+    padding: 20,
+  },
+  modalHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  modalHeadingTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "white",
+  },
+  modalBody: {
+    flex: undefined,
+  },
+  modalImage: {
+    width: "100%",
+    height: 180,
+  },
+  modalContentInner: {
+    padding: 16,
+  },
+  modalHeaderInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 14,
+  },
+  modalPropertyTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#111111",
+    marginBottom: 4,
+  },
+  modalLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  modalLocation: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  modalPrice: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#D95D29",
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: "#e5e7eb",
+    marginVertical: 14,
+  },
+  modalSection: {
+    marginBottom: 16,
+  },
+  modalSectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151",
+    marginBottom: 10,
+  },
+  modalSpecsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  modalSpecItem: {
+    flex: 1,
+    minWidth: "45%",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+  },
+  modalSpecLabel: {
+    fontSize: 10.5,
+    color: "#9ca3af",
     marginTop: 4,
+  },
+  modalSpecValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#111111",
+    marginTop: 2,
+  },
+  modalAgentCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 10,
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+  },
+  modalAgentAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fef3f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalAgentInitial: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#D95D29",
+  },
+  modalAgentName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111111",
+  },
+  modalAgentRole: {
+    fontSize: 11,
+    color: "#6b7280",
+  },
+  modalStatusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  modalStatusText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+  },
+  modalFooter: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+  },
+  modalCloseButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCloseText: {
+    fontSize: 13.5,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  modalActionButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  modalActionGradient: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalActionText: {
+    color: "white",
+    fontSize: 13.5,
+    fontWeight: "700",
+  },
+  modalFormScroll: {
+    flex: undefined,
+    maxHeight: height * 0.55,
+  },
+  modalFormScrollContent: {
+    padding: 20,
+    paddingBottom: 10,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151",
+    marginBottom: 6,
+  },
+  formInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 46,
+    gap: 10,
+  },
+  formInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#111111",
+    padding: 0,
+  },
+  formRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  typeSelectorRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  typeOptionCard: {
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  typeOptionCardActive: {
+    backgroundColor: "#111111",
+    borderColor: "#111111",
+  },
+  typeOptionText: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: "#4b5563",
+  },
+  typeOptionTextActive: {
+    color: "#FFFFFF",
   },
 });

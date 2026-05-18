@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import AdminLayout from "../components/AdminLayout";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 1024;
 
 export default function CategoriesManagement() {
@@ -181,7 +181,7 @@ export default function CategoriesManagement() {
                 <Ionicons name="apps" size={24} color="white" />
               </LinearGradient>
             </View>
-            <View>
+            <View style={{ flex: isWeb ? undefined : 1 }}>
               <Text style={styles.mainTitleText}>System Configuration</Text>
               <Text style={styles.subtitleText}>
                 Manage property classifications, regional zones, and pricing
@@ -192,52 +192,74 @@ export default function CategoriesManagement() {
         </View>
 
         {/* Enhanced Segmented Tabs */}
-        <View style={styles.segmentedTabRow}>
-          {(["Categories", "Locations", "Pricing"] as const).map((segment) => (
-            <TouchableOpacity
-              key={segment}
-              style={[
-                styles.segmentBtn,
-                activeSegment === segment && styles.segmentBtnActive,
-              ]}
-              onPress={() => setActiveSegment(segment)}
-            >
-              <LinearGradient
-                colors={
-                  activeSegment === segment
-                    ? ["#D95D29", "#c04e21"]
-                    : ["transparent", "transparent"]
-                }
-                style={styles.segmentGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Ionicons
-                  name={
-                    segment === "Categories"
-                      ? "grid"
-                      : segment === "Locations"
-                        ? "location"
-                        : "pricetag"
-                  }
-                  size={18}
-                  color={activeSegment === segment ? "white" : "#6b7280"}
-                />
-                <Text
+        <View
+          style={isWeb ? styles.segmentedTabRow : styles.segmentedTabRowMobile}
+        >
+          <ScrollView
+            horizontal={!isWeb}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={
+              !isWeb ? styles.segmentedTabScrollContentMobile : undefined
+            }
+            style={!isWeb ? { width: "100%" } : undefined}
+          >
+            {(["Categories", "Locations", "Pricing"] as const).map(
+              (segment) => (
+                <TouchableOpacity
+                  key={segment}
                   style={[
-                    styles.segmentBtnText,
-                    activeSegment === segment && styles.segmentBtnTextActive,
+                    isWeb ? styles.segmentBtn : styles.segmentBtnMobile,
+                    activeSegment === segment && styles.segmentBtnActive,
                   ]}
+                  onPress={() => setActiveSegment(segment)}
                 >
-                  {segment}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
+                  <LinearGradient
+                    colors={
+                      activeSegment === segment
+                        ? ["#D95D29", "#c04e21"]
+                        : ["transparent", "transparent"]
+                    }
+                    style={
+                      isWeb
+                        ? styles.segmentGradient
+                        : styles.segmentGradientMobile
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Ionicons
+                      name={
+                        segment === "Categories"
+                          ? "grid"
+                          : segment === "Locations"
+                            ? "location"
+                            : "pricetag"
+                      }
+                      size={16}
+                      color={activeSegment === segment ? "white" : "#6b7280"}
+                    />
+                    <Text
+                      style={[
+                        styles.segmentBtnText,
+                        activeSegment === segment &&
+                          styles.segmentBtnTextActive,
+                      ]}
+                    >
+                      {segment}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ),
+            )}
+          </ScrollView>
         </View>
 
         {/* Content Section */}
-        <View style={styles.ledgerWrapperCard}>
+        <View
+          style={
+            isWeb ? styles.ledgerWrapperCard : styles.mobileLedgerContainer
+          }
+        >
           {/* Categories Section */}
           {activeSegment === "Categories" && (
             <View>
@@ -417,66 +439,48 @@ export default function CategoriesManagement() {
                           <View style={styles.mobileIconContainer}>
                             <Ionicons
                               name={cat.icon as any}
-                              size={20}
+                              size={16}
                               color="#D95D29"
                             />
                           </View>
                           <Text style={styles.mobileCardCode}>{cat.code}</Text>
+                          <Text style={styles.mobileCardNameInline}>
+                            {cat.name}
+                          </Text>
                         </View>
                         <View
                           style={[
-                            styles.priorityBadge,
+                            styles.priorityBadgeMobile,
                             {
                               backgroundColor: `${getPriorityColor(cat.priority)}15`,
                             },
                           ]}
                         >
-                          <View
-                            style={[
-                              styles.priorityDot,
-                              {
-                                backgroundColor: getPriorityColor(cat.priority),
-                              },
-                            ]}
-                          />
                           <Text
                             style={[
-                              styles.priorityText,
-                              {
-                                color: getPriorityColor(cat.priority),
-                                fontSize: 10,
-                              },
+                              styles.priorityTextMobile,
+                              { color: getPriorityColor(cat.priority) },
                             ]}
                           >
                             {cat.priority}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.mobileCardName}>{cat.name}</Text>
-                      <Text style={styles.mobileCardSubtext}>
+                      <Text style={styles.mobileCardSubtext} numberOfLines={1}>
                         Types: {cat.types.join(", ")}
                       </Text>
                       <View style={styles.mobileStatsRow}>
                         <View style={styles.mobileStat}>
                           <Ionicons
                             name="home-outline"
-                            size={14}
-                            color="#9ca3af"
+                            size={12}
+                            color="#6b7280"
                           />
                           <Text style={styles.mobileStatValue}>
                             {cat.activeListings} listings
                           </Text>
                         </View>
-                        <View
-                          style={[
-                            styles.mobileStat,
-                            {
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: 4,
-                            },
-                          ]}
-                        >
+                        <View style={styles.mobileStat}>
                           <Ionicons
                             name={getTrendIcon(cat.trend)}
                             size={12}
@@ -488,7 +492,7 @@ export default function CategoriesManagement() {
                               { color: getTrendColor(cat.trend) },
                             ]}
                           >
-                            {cat.trend}
+                            {cat.trend} Activity
                           </Text>
                         </View>
                       </View>
@@ -499,7 +503,6 @@ export default function CategoriesManagement() {
             </View>
           )}
 
-          {/* Locations Section */}
           {activeSegment === "Locations" && (
             <View>
               <View style={styles.sectionHeaderRow}>
@@ -639,37 +642,39 @@ export default function CategoriesManagement() {
                           <View style={styles.mobileIconContainer}>
                             <Ionicons
                               name="location"
-                              size={20}
+                              size={16}
                               color="#D95D29"
                             />
                           </View>
                           <Text style={styles.mobileCardCode}>{loc.id}</Text>
+                          <Text style={styles.mobileCardNameInline}>
+                            {loc.sector}
+                          </Text>
                         </View>
                         <Text style={styles.mobileSurgeText}>
                           {loc.surgeMultiplier}
                         </Text>
                       </View>
-                      <Text style={styles.mobileCardName}>{loc.sector}</Text>
                       <Text style={styles.mobileCardSubtext}>{loc.city}</Text>
                       <View style={styles.mobileStatsRow}>
                         <View style={styles.mobileStat}>
                           <Ionicons
                             name="home-outline"
-                            size={14}
-                            color="#9ca3af"
+                            size={12}
+                            color="#6b7280"
                           />
                           <Text style={styles.mobileStatValue}>
-                            {loc.listings} properties
+                            {loc.listings} units
                           </Text>
                         </View>
                         <View style={styles.mobileStat}>
                           <Ionicons
                             name="cash-outline"
-                            size={14}
-                            color="#9ca3af"
+                            size={12}
+                            color="#6b7280"
                           />
                           <Text style={styles.mobileStatValue}>
-                            Tax: {loc.baseTaxRate}
+                            Base Tax: {loc.baseTaxRate}
                           </Text>
                         </View>
                       </View>
@@ -680,7 +685,6 @@ export default function CategoriesManagement() {
             </View>
           )}
 
-          {/* Pricing Section */}
           {activeSegment === "Pricing" && (
             <View>
               <View style={styles.sectionHeaderRow}>
@@ -727,7 +731,7 @@ export default function CategoriesManagement() {
                       <View style={styles.pricingIconContainer}>
                         <Ionicons
                           name={rule.icon as any}
-                          size={22}
+                          size={20}
                           color="#D95D29"
                         />
                       </View>
@@ -772,7 +776,7 @@ export default function CategoriesManagement() {
 
       {/* Add Item Modal */}
       <Modal
-        animationType="fade"
+        animationType="slide"
         transparent={true}
         visible={isAddModalOpen}
         onRequestClose={() => setIsAddModalOpen(false)}
@@ -782,7 +786,9 @@ export default function CategoriesManagement() {
           activeOpacity={1}
           onPress={() => setIsAddModalOpen(false)}
         >
-          <View style={styles.modalContentCard}>
+          <View
+            style={[styles.modalContentCard, { width: isWeb ? 500 : "92%" }]}
+          >
             <LinearGradient
               colors={["#D95D29", "#c04e21"]}
               style={styles.modalGradientHeader}
@@ -802,7 +808,12 @@ export default function CategoriesManagement() {
               </View>
             </LinearGradient>
 
-            <View style={styles.modalBody}>
+            {/* FIXED: Form Scroll View definitions targeted safely to avoid Android hierarchy engine crashes */}
+            <ScrollView
+              style={styles.modalFormScroll}
+              contentContainerStyle={styles.modalFormScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
               {modalType === "category" && (
                 <>
                   <View style={styles.formGroup}>
@@ -810,6 +821,7 @@ export default function CategoriesManagement() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="e.g., Residential"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                   <View style={styles.formGroup}>
@@ -817,6 +829,7 @@ export default function CategoriesManagement() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="e.g., CAT-RES"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                   <View style={styles.formGroup}>
@@ -824,6 +837,7 @@ export default function CategoriesManagement() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="e.g., Villa, Apartment"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                 </>
@@ -836,6 +850,7 @@ export default function CategoriesManagement() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="e.g., HITEC City"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                   <View style={styles.formGroup}>
@@ -843,6 +858,7 @@ export default function CategoriesManagement() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="e.g., Hyderabad"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                   <View style={styles.formRow}>
@@ -851,6 +867,7 @@ export default function CategoriesManagement() {
                       <TextInput
                         style={styles.formInput}
                         placeholder="e.g., 2.4%"
+                        placeholderTextColor="#9ca3af"
                       />
                     </View>
                     <View style={[styles.formGroup, { flex: 1 }]}>
@@ -858,6 +875,7 @@ export default function CategoriesManagement() {
                       <TextInput
                         style={styles.formInput}
                         placeholder="e.g., x1.25"
+                        placeholderTextColor="#9ca3af"
                       />
                     </View>
                   </View>
@@ -871,6 +889,7 @@ export default function CategoriesManagement() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="e.g., Featured Listing Boost"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                   <View style={styles.formGroup}>
@@ -880,6 +899,7 @@ export default function CategoriesManagement() {
                       multiline
                       numberOfLines={3}
                       placeholder="Describe the rule..."
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                   <View style={styles.formGroup}>
@@ -887,11 +907,12 @@ export default function CategoriesManagement() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="e.g., +15%"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
                 </>
               )}
-            </View>
+            </ScrollView>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
@@ -925,37 +946,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
   },
   scrollContent: {
-    padding: isWeb ? 24 : 16,
+    padding: isWeb ? 24 : 14,
     paddingBottom: 40,
   },
   headerSection: {
-    marginBottom: 24,
+    marginBottom: isWeb ? 24 : 16,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: isWeb ? 16 : 12,
   },
   headerIconContainer: {
     borderRadius: 14,
     overflow: "hidden",
   },
   headerIconGradient: {
-    width: 52,
-    height: 52,
+    width: isWeb ? 52 : 44,
+    height: isWeb ? 52 : 44,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
   mainTitleText: {
-    fontSize: isWeb ? 28 : 22,
+    fontSize: isWeb ? 28 : 20,
     fontWeight: "900",
     color: "#111111",
   },
   subtitleText: {
-    fontSize: 14,
+    fontSize: isWeb ? 14 : 12,
     color: "#6b7280",
-    marginTop: 4,
+    marginTop: 2,
   },
   segmentedTabRow: {
     flexDirection: "row",
@@ -967,9 +988,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
+  segmentedTabRowMobile: {
+    flexDirection: "row",
+    backgroundColor: "#ffffff",
+    padding: 4,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  segmentedTabScrollContentMobile: {
+    gap: 6,
+    paddingRight: 10,
+  },
   segmentBtn: {
     flex: 1,
     borderRadius: 10,
+    overflow: "hidden",
+  },
+  segmentBtnMobile: {
+    width: width * 0.28,
+    borderRadius: 8,
     overflow: "hidden",
   },
   segmentGradient: {
@@ -979,15 +1018,25 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
   },
+  segmentGradientMobile: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+  },
   segmentBtnActive: {
-    shadowColor: "#D95D29",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 2px 4px rgba(217, 93, 41, 0.2)",
+      },
+      default: {
+        elevation: 2,
+      },
+    }),
   },
   segmentBtnText: {
-    fontSize: 14,
+    fontSize: isWeb ? 14 : 12,
     color: "#6b7280",
     fontWeight: "600",
   },
@@ -997,51 +1046,48 @@ const styles = StyleSheet.create({
   ledgerWrapperCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: isWeb ? 24 : 16,
+    padding: 24,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+  },
+  mobileLedgerContainer: {
+    backgroundColor: "transparent",
   },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: 4,
   },
   ledgerHeading: {
-    fontSize: 18,
+    fontSize: isWeb ? 18 : 16,
     fontWeight: "800",
     color: "#111111",
   },
   ledgerSubheading: {
     fontSize: 12,
     color: "#6b7280",
-    marginTop: 2,
   },
   accentActionButton: {
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: "hidden",
   },
   addButtonGradient: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   btnActionText: {
     color: "white",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
   },
   horizontalDivider: {
     height: 1,
     backgroundColor: "#e5e7eb",
-    marginVertical: 20,
+    marginVertical: isWeb ? 20 : 12,
   },
   tableWrapper: {
     width: "100%",
@@ -1094,6 +1140,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "flex-start",
   },
+  priorityBadgeMobile: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
   priorityDot: {
     width: 6,
     height: 6,
@@ -1101,6 +1152,10 @@ const styles = StyleSheet.create({
   },
   priorityText: {
     fontSize: 11,
+    fontWeight: "700",
+  },
+  priorityTextMobile: {
+    fontSize: 10,
     fontWeight: "700",
   },
   actionIconButton: {
@@ -1112,54 +1167,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   mobileCardsStream: {
-    gap: 14,
+    gap: 10,
+    marginTop: 8,
   },
   mobileConfigCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    padding: 16,
+    padding: 12,
   },
   cardHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   cardHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   mobileIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 6,
     backgroundColor: "#fef3f0",
     justifyContent: "center",
     alignItems: "center",
   },
   mobileCardCode: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "800",
     color: "#D95D29",
   },
+  mobileCardNameInline: {
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: "#111111",
+  },
   mobileCardName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: "#111111",
     marginBottom: 4,
   },
   mobileCardSubtext: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: "#6b7280",
-    marginBottom: 12,
+    marginBottom: 8,
+    paddingLeft: 2,
   },
   mobileStatsRow: {
     flexDirection: "row",
-    gap: 16,
-    marginTop: 4,
+    gap: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    paddingTop: 8,
   },
   mobileStat: {
     flexDirection: "row",
@@ -1167,13 +1231,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   mobileStatValue: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: "#6b7280",
     fontWeight: "500",
   },
   mobileTrend: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 11.5,
+    fontWeight: "600",
   },
   mobileSurgeText: {
     fontSize: 13,
@@ -1183,7 +1247,7 @@ const styles = StyleSheet.create({
   pricingRulesLayout: {
     flexWrap: "wrap",
     justifyContent: "flex-start",
-    gap: 20,
+    gap: isWeb ? 20 : 10,
   },
   rowLayout: {
     flexDirection: "row",
@@ -1195,23 +1259,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 2,
-    elevation: 1,
+    padding: isWeb ? 20 : 14,
   },
   pricingCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   pricingIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     backgroundColor: "#fef3f0",
     justifyContent: "center",
     alignItems: "center",
@@ -1219,11 +1278,11 @@ const styles = StyleSheet.create({
   pricingStatusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     backgroundColor: "rgba(16, 185, 129, 0.1)",
-    borderRadius: 20,
+    borderRadius: 12,
   },
   statusDotActive: {
     width: 6,
@@ -1240,22 +1299,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     color: "#D95D29",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   ruleTitleText: {
-    fontSize: 16,
+    fontSize: isWeb ? 16 : 14,
     fontWeight: "700",
     color: "#111111",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   ruleDescText: {
     fontSize: 12,
     color: "#6b7280",
-    lineHeight: 18,
-    marginBottom: 16,
+    lineHeight: 16,
+    marginBottom: 12,
   },
   deltaValueBox: {
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: "hidden",
   },
   deltaGradient: {
@@ -1263,33 +1322,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   deltaValueText: {
     color: "white",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
   },
   modalContentCard: {
     backgroundColor: "#FFFFFF",
-    width: isWeb ? 500 : "100%",
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    maxHeight: height * 0.82,
   },
   modalGradientHeader: {
-    padding: 24,
+    padding: 20,
   },
   modalHeaderRow: {
     flexDirection: "row",
@@ -1304,14 +1357,22 @@ const styles = StyleSheet.create({
   modalBody: {
     padding: 24,
   },
+  modalFormScroll: {
+    flex: undefined,
+    maxHeight: height * 0.55,
+  },
+  modalFormScrollContent: {
+    padding: 20,
+    paddingBottom: 10,
+  },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   formLabel: {
     fontSize: 13,
     fontWeight: "700",
     color: "#374151",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   formInput: {
     backgroundColor: "#f9fafb",
@@ -1319,13 +1380,15 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    height: 46,
     fontSize: 14,
     color: "#111111",
+    padding: 0,
   },
   textArea: {
     height: 80,
     textAlignVertical: "top",
+    paddingTop: 10,
   },
   formRow: {
     flexDirection: "row",
@@ -1334,28 +1397,29 @@ const styles = StyleSheet.create({
   modalFooter: {
     flexDirection: "row",
     gap: 12,
-    padding: 20,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
   },
   modalCancelButton: {
     flex: 1,
-    height: 44,
-    borderRadius: 10,
+    height: 40,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
   },
   modalCancelText: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "600",
     color: "#6b7280",
   },
   modalSaveButton: {
     flex: 1,
-    height: 44,
-    borderRadius: 10,
+    height: 40,
+    borderRadius: 8,
     overflow: "hidden",
   },
   modalSaveGradient: {
@@ -1365,7 +1429,7 @@ const styles = StyleSheet.create({
   },
   modalSaveText: {
     color: "white",
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "700",
   },
 });

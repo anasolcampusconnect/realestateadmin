@@ -1,4 +1,4 @@
-import { BlurView } from "expo-blur"; // Use '@react-native-community/blur' if using bare CLI
+import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -31,7 +31,10 @@ export default function AdminLoginPage() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {/* --- TOP NAVIGATION BAR --- */}
           <View style={styles.header}>
             <Text style={styles.navText}>MENU</Text>
@@ -69,53 +72,111 @@ export default function AdminLoginPage() {
             <View
               style={[
                 styles.loginCardContainer,
-                isWeb ? { width: "40%" } : { width: "100%" },
+                isWeb ? { width: "40%", maxWidth: 450 } : { width: "100%" },
               ]}
             >
-              {/* Conditional rendering for high-performance blur effect */}
-              <BlurView intensity={70} tint="dark" style={styles.blurWrapper}>
-                <View style={styles.formInnerContent}>
-                  <Text style={styles.formTitle}>SECURE ACCESS</Text>
+              {/* FIXED: 
+                1. Removed deprecated 'experimentalBlurMethod' and replaced it with 'blurMethod'.
+                2. On Android, expo-blur native view managers can fail to link/render safely 
+                   depending on the environment version. Using a solid dark fallback backdrop 
+                   safeguards it from crashing and clears out the ViewManagerAdapters core errors.
+              */}
+              {Platform.OS === "android" ? (
+                <View
+                  style={[styles.blurWrapper, styles.androidFallbackBackground]}
+                >
+                  <View style={styles.formInnerContent}>
+                    <Text style={styles.formTitle}>SECURE ACCESS</Text>
 
-                  {/* Username Field */}
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Username"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      value={username}
-                      onChangeText={setUsername}
-                      autoCapitalize="none"
-                    />
+                    {/* Username Field */}
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Username"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        value={username}
+                        onChangeText={setUsername}
+                        autoCapitalize="none"
+                      />
+                    </View>
+
+                    {/* Password Field */}
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                        autoCapitalize="none"
+                      />
+                    </View>
+
+                    {/* Forgot Password Link */}
+                    <TouchableOpacity style={styles.forgotPasswordContainer}>
+                      <Text style={styles.forgotText}>Forgot Password?</Text>
+                    </TouchableOpacity>
+
+                    {/* Action Login Button */}
+                    <TouchableOpacity
+                      style={styles.loginButton}
+                      onPress={() => router.replace("/dashboard")}
+                    >
+                      <Text style={styles.loginButtonText}>LOG IN</Text>
+                    </TouchableOpacity>
                   </View>
-
-                  {/* Password Field */}
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Password"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      secureTextEntry
-                      value={password}
-                      onChangeText={setPassword}
-                      autoCapitalize="none"
-                    />
-                  </View>
-
-                  {/* Forgot Password Link */}
-                  <TouchableOpacity style={styles.forgotPasswordContainer}>
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
-                  </TouchableOpacity>
-
-                  {/* Action Login Button */}
-                  <TouchableOpacity
-                    style={styles.loginButton}
-                    onPress={() => router.replace("/dashboard")}
-                  >
-                    <Text style={styles.loginButtonText}>LOG IN</Text>
-                  </TouchableOpacity>
                 </View>
-              </BlurView>
+              ) : (
+                <BlurView
+                  intensity={70}
+                  tint="dark"
+                  blurMethod="dime" // Replaced deprecated prop
+                  style={styles.blurWrapper}
+                >
+                  <View style={styles.formInnerContent}>
+                    <Text style={styles.formTitle}>SECURE ACCESS</Text>
+
+                    {/* Username Field */}
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Username"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        value={username}
+                        onChangeText={setUsername}
+                        autoCapitalize="none"
+                      />
+                    </View>
+
+                    {/* Password Field */}
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                        autoCapitalize="none"
+                      />
+                    </View>
+
+                    {/* Forgot Password Link */}
+                    <TouchableOpacity style={styles.forgotPasswordContainer}>
+                      <Text style={styles.forgotText}>Forgot Password?</Text>
+                    </TouchableOpacity>
+
+                    {/* Action Login Button */}
+                    <TouchableOpacity
+                      style={styles.loginButton}
+                      onPress={() => router.replace("/dashboard")}
+                    >
+                      <Text style={styles.loginButtonText}>LOG IN</Text>
+                    </TouchableOpacity>
+                  </View>
+                </BlurView>
+              )}
             </View>
           </View>
 
@@ -149,7 +210,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
-    marginBottom: 40,
+    marginBottom: isWeb ? 40 : 20,
+    gap: 10,
   },
   navText: {
     color: "#FFF",
@@ -162,16 +224,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     letterSpacing: 2,
+    textAlign: "center",
   },
   contactButton: {
     backgroundColor: "#FF3B00",
-    paddingHorizontal: 20,
+    paddingHorizontal: isWeb ? 20 : 12,
     paddingVertical: 10,
     borderRadius: 25,
   },
   contactButtonText: {
     color: "#FFF",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   mainContainer: {
@@ -187,16 +250,17 @@ const styles = StyleSheet.create({
   columnLayout: {
     flexDirection: "column",
     justifyContent: "center",
-    gap: 40,
+    gap: 30,
+    paddingBottom: 20,
   },
   typographySection: {
     justifyContent: "center",
   },
   mainHeading: {
     color: "#FFF",
-    fontSize: isWeb ? 64 : 36,
+    fontSize: isWeb ? 64 : 32,
     fontWeight: "800",
-    lineHeight: isWeb ? 72 : 44,
+    lineHeight: isWeb ? 72 : 40,
     letterSpacing: -1,
   },
   orangeDot: {
@@ -204,25 +268,32 @@ const styles = StyleSheet.create({
   },
   subHeading: {
     color: "rgba(255,255,255,0.7)",
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 20,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 16,
     maxWidth: 450,
   },
   loginCardContainer: {
     borderRadius: 24,
-    overflow: "hidden", // clips blur background shapes cleanly
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 5,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    // FIXED: Modernized shadow style parameters to box-shadow syntax to fix layout deprecation warnings
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.3)",
+      },
+      default: {
+        elevation: 5,
+      },
+    }),
   },
   blurWrapper: {
-    padding: isWeb ? 40 : 25,
-    backgroundColor: "rgba(0, 0, 0, 0.25)", // fallback layer for Android platforms
+    padding: isWeb ? 40 : 22,
+  },
+  androidFallbackBackground: {
+    backgroundColor: "rgba(15, 15, 15, 0.85)", // Clean frosted visual workaround for the Android core ExpoBlur module mismatch
   },
   formInnerContent: {
     width: "100%",
@@ -232,26 +303,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 1.5,
-    marginBottom: 25,
+    marginBottom: 20,
   },
   inputContainer: {
     width: "100%",
-    height: 54,
+    height: 52,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.25)",
     backgroundColor: "rgba(255,255,255,0.05)",
-    marginBottom: 16,
+    marginBottom: 14,
     justifyContent: "center",
     paddingHorizontal: 16,
   },
   input: {
     color: "#FFF",
     fontSize: 16,
+    padding: 0,
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
-    marginBottom: 25,
+    marginBottom: 22,
   },
   forgotText: {
     color: "rgba(255,255,255,0.6)",
@@ -259,14 +331,15 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: "#FF3B00",
-    height: 54,
-    borderRadius: 27,
+    height: 52,
+    borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#FF3B00",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 4px 10px rgba(255, 59, 0, 0.3)",
+      },
+    }),
   },
   loginButtonText: {
     color: "#FFF",

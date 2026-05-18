@@ -1,18 +1,26 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useRef, useState } from "react";
 import {
+    Alert,
+    Animated,
     Dimensions,
+    Keyboard,
+    KeyboardAvoidingView,
     Platform,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from "react-native";
-import AdminLayout from "../components/AdminLayout"; // Shared layout engine component import
+import AdminLayout from "../components/AdminLayout";
 
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 1024;
+const isAndroid = Platform.OS === "android";
 
 interface SupportTicket {
   ticketId: string;
@@ -24,11 +32,43 @@ interface SupportTicket {
   timestamp: string;
 }
 
+interface ChatMessage {
+  id: number;
+  sender: string;
+  message: string;
+  time: string;
+}
+
 export default function ComplaintsSupport() {
   const [activeTicketId, setActiveTicketId] = useState("TK-4029");
   const [resolutionMessage, setResolutionMessage] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: 1,
+      sender: "Rahul Dravid",
+      message:
+        "I transferred the ₹5,00,000 token advance over 3 hours ago. The transaction status ID is TXN-77192. Please unlock my booking deed.",
+      time: "11:02 AM",
+    },
+    {
+      id: 2,
+      sender: "Support Bot",
+      message:
+        "Automated statement query initiated. Waiting for banking node handshake verification confirmation...",
+      time: "11:03 AM",
+    },
+    {
+      id: 3,
+      sender: "Rahul Dravid",
+      message:
+        "Can an administrator manually cross-check the reference hook? The auction window closes shortly.",
+      time: "11:15 AM",
+    },
+  ]);
 
-  // Mock real estate complaint tickets matching enterprise workflows
+  const scrollViewRef = useRef<ScrollView>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   const supportTickets: SupportTicket[] = [
     {
       ticketId: "TK-4029",
@@ -62,239 +102,464 @@ export default function ComplaintsSupport() {
     },
   ];
 
-  // Simulated chat messages thread for the currently selected active ticket
-  const ticketChatThread = [
-    {
-      id: 1,
-      sender: "Customer",
-      message:
-        "I transferred the ₹5,00,000 token advance over 3 hours ago. The transaction status ID is TXN-77192. Please unlock my booking deed.",
-      time: "11:02 AM",
-    },
-    {
-      id: 2,
-      sender: "System Bot",
-      message:
-        "Automated statement query initiated. Waiting for banking node handshake verification confirmation...",
-      time: "11:03 AM",
-    },
-    {
-      id: 3,
-      sender: "Customer",
-      message:
-        "Can an administrator manually cross-check the reference hook? The auction window closes shortly.",
-      time: "11:15 AM",
-    },
-  ];
-
   const currentTicket =
     supportTickets.find((t) => t.ticketId === activeTicketId) ||
     supportTickets[0];
 
+  const getPriorityColors = (priority: string) => {
+    switch (priority) {
+      case "CRITICAL":
+        return {
+          bg: "#FEE2E2",
+          text: "#DC2626",
+          icon: "alert-circle",
+          label: "Critical",
+        };
+      case "HIGH":
+        return {
+          bg: "#FEF3C7",
+          text: "#D97706",
+          icon: "warning",
+          label: "High",
+        };
+      default:
+        return {
+          bg: "#F3F4F6",
+          text: "#6B7280",
+          icon: "information-circle",
+          label: "Standard",
+        };
+    }
+  };
+
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case "Open":
+        return { bg: "#FEE2E2", text: "#DC2626", icon: "time", label: "Open" };
+      case "In Progress":
+        return {
+          bg: "#FEF3C7",
+          text: "#D97706",
+          icon: "sync",
+          label: "In Progress",
+        };
+      default:
+        return {
+          bg: "#D1FAE5",
+          text: "#059669",
+          icon: "checkmark-circle",
+          label: "Resolved",
+        };
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!resolutionMessage.trim()) {
+      Alert.alert("Info", "Please enter a message before sending");
+      return;
+    }
+
+    const newMessage: ChatMessage = {
+      id: chatMessages.length + 1,
+      sender: "Support Agent",
+      message: resolutionMessage,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    setChatMessages([...chatMessages, newMessage]);
+    setResolutionMessage("");
+
+    // Scroll to bottom
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
+  const handleResolveTicket = () => {
+    Alert.alert(
+      "Resolve Ticket",
+      `Are you sure you want to mark ticket ${currentTicket.ticketId} as resolved?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Resolve",
+          onPress: () => {
+            Alert.alert(
+              "Success",
+              `Ticket ${currentTicket.ticketId} has been resolved`,
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  // Animate on mount
+  React.useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   return (
     <AdminLayout currentPageLabel="Complaints & Support">
-      <ScrollView
-        style={styles.pageWrapper}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
-        {/* --- MODULE SUMMARY BREADCRUMB --- */}
-        <View style={styles.breadcrumbHeader}>
-          <View>
-            <Text style={styles.mainTitleText}>
-              Customer Grievance & Support Management
-            </Text>
-            <Text style={styles.subtitleText}>
-              Address customer complaints, investigate agent non-compliance
-              reports, and coordinate platform escalations.
-            </Text>
-          </View>
-        </View>
-
-        {/* --- CONTENT SEGMENT GRID WORKSPACE --- */}
-        <View
-          style={[
-            styles.workspaceSplitRow,
-            isWeb ? styles.rowLayout : styles.columnLayout,
-          ]}
-        >
-          {/* ================= LEFT CONTAINER: INCIDENT ESCALATIONS LEDGER ================= */}
-          <View
-            style={[
-              styles.leftLedgerColumn,
-              isWeb ? { width: "48%" } : { width: "100%" },
-            ]}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            style={styles.pageWrapper}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
           >
-            <Text style={styles.sectionHeadingTitle}>
-              Incoming Escalation Stream
-            </Text>
-            <View style={styles.ticketsStack}>
-              {supportTickets.map((ticket) => {
-                const isActive = ticket.ticketId === activeTicketId;
-                return (
-                  <TouchableOpacity
-                    key={ticket.ticketId}
-                    style={[
-                      styles.ticketRowItemCard,
-                      isActive && styles.ticketCardActive,
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => setActiveTicketId(ticket.ticketId)}
-                  >
-                    <View style={styles.cardInlineHeaderRow}>
-                      <Text
-                        style={[
-                          styles.ticketIdText,
-                          isActive && styles.textOrangeTheme,
-                        ]}
-                      >
-                        {ticket.ticketId}
-                      </Text>
-                      <View
-                        style={[
-                          styles.priorityLabelBadge,
-                          ticket.priority === "CRITICAL"
-                            ? styles.bgRed
-                            : ticket.priority === "HIGH"
-                              ? styles.bgOrange
-                              : styles.bgGrey,
-                        ]}
-                      >
-                        <Text style={styles.priorityBadgeText}>
-                          {ticket.priority}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Text style={styles.ticketCategoryLabel}>
-                      {ticket.category}
-                    </Text>
-                    <Text style={styles.ticketDescSummary} numberOfLines={2}>
-                      {ticket.issueSummary}
-                    </Text>
-
-                    <View style={styles.horizontalLineDivider} />
-
-                    <View style={styles.cardInlineFooterRow}>
-                      <Text style={styles.customerNameText}>
-                        User: {ticket.customerName}
-                      </Text>
-                      <Text style={styles.timestampText}>
-                        {ticket.timestamp}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* ================= RIGHT CONTAINER: LIVE RESOLUTION CONSOLE ================= */}
-          <View
-            style={[
-              styles.rightChatColumn,
-              isWeb ? { width: "49%" } : { width: "100%" },
-            ]}
-          >
-            <View style={styles.chatTerminalCard}>
-              <View style={styles.chatHeaderRow}>
+            {/* Enhanced Header Section */}
+            <Animated.View
+              style={[styles.headerSection, { opacity: fadeAnim }]}
+            >
+              <View style={styles.headerLeft}>
+                <LinearGradient
+                  colors={["#D95D29", "#c04e21"]}
+                  style={styles.headerIconGradient}
+                >
+                  <Ionicons name="chatbubbles" size={24} color="white" />
+                </LinearGradient>
                 <View>
-                  <Text style={styles.chatHeaderTitle}>
-                    Ticket Workbench — File {currentTicket.ticketId}
-                  </Text>
-                  <Text style={styles.chatHeaderSubtitle}>
-                    Client: {currentTicket.customerName} • Scope:{" "}
-                    {currentTicket.category}
-                  </Text>
-                </View>
-                <View style={styles.statusGroupBadgeWrapper}>
-                  <Text style={styles.statusLabelIndicatorText}>
-                    Status:{" "}
-                    <Text style={styles.boldStatusValue}>
-                      {currentTicket.status}
-                    </Text>
+                  <Text style={styles.mainTitleText}>Customer Support</Text>
+                  <Text style={styles.subtitleText}>
+                    Manage complaints, resolve issues, and assist customers
                   </Text>
                 </View>
               </View>
+              <View style={styles.headerStats}>
+                <View style={styles.headerStat}>
+                  <Ionicons name="alert-circle" size={16} color="#DC2626" />
+                  <Text style={styles.headerStatText}>
+                    {
+                      supportTickets.filter((t) => t.priority === "CRITICAL")
+                        .length
+                    }{" "}
+                    Critical
+                  </Text>
+                </View>
+                <View style={styles.headerStat}>
+                  <Ionicons name="time" size={16} color="#D97706" />
+                  <Text style={styles.headerStatText}>
+                    {supportTickets.filter((t) => t.status === "Open").length}{" "}
+                    Open
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
 
-              <View style={styles.horizontalLineDivider} />
-
-              {/* Simulated Workspace Chat Transcript Stream Area */}
-              <ScrollView
-                style={styles.chatTranscriptPort}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={true}
+            {/* Content Grid */}
+            <View
+              style={[
+                styles.workspaceSplitRow,
+                isWeb ? styles.rowLayout : styles.columnLayout,
+              ]}
+            >
+              {/* LEFT: Tickets List */}
+              <View
+                style={[
+                  styles.leftLedgerColumn,
+                  isWeb ? { width: "48%" } : { width: "100%" },
+                ]}
               >
-                {ticketChatThread.map((chat) => {
-                  const isUser = chat.sender === "Customer";
-                  return (
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionHeadingTitle}>
+                    Support Tickets
+                  </Text>
+                  <TouchableOpacity style={styles.filterButton}>
+                    <Ionicons name="filter" size={16} color="#D95D29" />
+                    <Text style={styles.filterButtonText}>Filter</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.ticketsStack}>
+                  {supportTickets.map((ticket, index) => {
+                    const isActive = ticket.ticketId === activeTicketId;
+                    const priorityColors = getPriorityColors(ticket.priority);
+                    const statusConfig = getStatusConfig(ticket.status);
+
+                    return (
+                      <Animated.View
+                        key={ticket.ticketId}
+                        style={{
+                          opacity: fadeAnim,
+                          transform: [
+                            {
+                              translateX: fadeAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [-20, 0],
+                              }),
+                            },
+                          ],
+                        }}
+                      >
+                        <TouchableOpacity
+                          style={[
+                            styles.ticketRowItemCard,
+                            isActive && styles.ticketCardActive,
+                            isAndroid && styles.ticketAndroid,
+                          ]}
+                          activeOpacity={0.7}
+                          onPress={() => setActiveTicketId(ticket.ticketId)}
+                        >
+                          <View style={styles.cardInlineHeaderRow}>
+                            <View style={styles.ticketHeaderLeft}>
+                              <LinearGradient
+                                colors={
+                                  isActive
+                                    ? ["#D95D29", "#c04e21"]
+                                    : ["#9CA3AF", "#6B7280"]
+                                }
+                                style={styles.ticketBadge}
+                              >
+                                <Text style={styles.ticketBadgeText}>
+                                  {ticket.ticketId}
+                                </Text>
+                              </LinearGradient>
+                              <View
+                                style={[
+                                  styles.priorityLabelBadge,
+                                  { backgroundColor: priorityColors.bg },
+                                ]}
+                              >
+                                <Ionicons
+                                  name={priorityColors.icon as any}
+                                  size={10}
+                                  color={priorityColors.text}
+                                />
+                                <Text
+                                  style={[
+                                    styles.priorityBadgeText,
+                                    { color: priorityColors.text },
+                                  ]}
+                                >
+                                  {priorityColors.label}
+                                </Text>
+                              </View>
+                            </View>
+                            <View
+                              style={[
+                                styles.statusDot,
+                                { backgroundColor: statusConfig.text },
+                              ]}
+                            />
+                          </View>
+
+                          <Text style={styles.ticketCategoryLabel}>
+                            {ticket.category}
+                          </Text>
+                          <Text
+                            style={styles.ticketDescSummary}
+                            numberOfLines={2}
+                          >
+                            {ticket.issueSummary}
+                          </Text>
+
+                          <View style={styles.ticketFooter}>
+                            <View style={styles.customerInfo}>
+                              <Ionicons
+                                name="person-circle"
+                                size={14}
+                                color="#9CA3AF"
+                              />
+                              <Text style={styles.customerNameText}>
+                                {ticket.customerName}
+                              </Text>
+                            </View>
+                            <View style={styles.timeInfo}>
+                              <Ionicons name="time" size={12} color="#9CA3AF" />
+                              <Text style={styles.timestampText}>
+                                {ticket.timestamp.split(",")[0]}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      </Animated.View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* RIGHT: Chat Interface */}
+              <View
+                style={[
+                  styles.rightChatColumn,
+                  isWeb ? { width: "49%" } : { width: "100%" },
+                ]}
+              >
+                <Animated.View
+                  style={[styles.chatTerminalCard, { opacity: fadeAnim }]}
+                >
+                  {/* Chat Header */}
+                  <View style={styles.chatHeaderRow}>
+                    <View style={styles.chatHeaderInfo}>
+                      <Text style={styles.chatHeaderTitle}>
+                        {currentTicket.ticketId}
+                      </Text>
+                      <View style={styles.chatHeaderMeta}>
+                        <View style={styles.metaItem}>
+                          <Ionicons name="person" size={12} color="#9CA3AF" />
+                          <Text style={styles.chatHeaderSubtitle}>
+                            {currentTicket.customerName}
+                          </Text>
+                        </View>
+                        <View style={styles.metaDivider} />
+                        <View style={styles.metaItem}>
+                          <Ionicons name="folder" size={12} color="#9CA3AF" />
+                          <Text style={styles.chatHeaderSubtitle}>
+                            {currentTicket.category}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
                     <View
-                      key={chat.id}
                       style={[
-                        styles.messageBubbleFrame,
-                        isUser ? styles.bubbleLeft : styles.bubbleRight,
+                        styles.statusBadge,
+                        {
+                          backgroundColor: getStatusConfig(currentTicket.status)
+                            .bg,
+                        },
                       ]}
                     >
-                      <View
+                      <Ionicons
+                        name={getStatusConfig(currentTicket.status).icon as any}
+                        size={12}
+                        color={getStatusConfig(currentTicket.status).text}
+                      />
+                      <Text
                         style={[
-                          styles.messageBubble,
-                          isUser ? styles.bgBubbleLeft : styles.bgBubbleRight,
+                          styles.statusText,
+                          { color: getStatusConfig(currentTicket.status).text },
                         ]}
                       >
-                        <Text style={styles.senderIdentityLabel}>
-                          {chat.sender}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.messageText,
-                            isUser ? styles.textDark : styles.textLight,
-                          ]}
-                        >
-                          {chat.message}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.messageTimeText,
-                            isUser ? styles.textGreySub : styles.textMutedLight,
-                          ]}
-                        >
-                          {chat.time}
-                        </Text>
-                      </View>
+                        {getStatusConfig(currentTicket.status).label}
+                      </Text>
                     </View>
-                  );
-                })}
-              </ScrollView>
+                  </View>
 
-              <View style={styles.horizontalLineDivider} />
+                  <View style={styles.horizontalLineDivider} />
 
-              {/* Interactive Response Dispatcher Form Area */}
-              <Text style={styles.textareaFieldLabel}>
-                MANUAL PROTOCOL DISPATCH MESSAGE
-              </Text>
-              <View style={styles.chatInputTextareaContainer}>
-                <TextInput
-                  style={styles.terminalTextareaInput}
-                  multiline
-                  numberOfLines={3}
-                  placeholder="Compose response statement, notify manual bank draft approval unlock timestamp, or log resolution notes..."
-                  placeholderTextColor="#888888"
-                  value={resolutionMessage}
-                  onChangeText={setResolutionMessage}
-                />
-              </View>
+                  {/* Chat Messages */}
+                  <ScrollView
+                    ref={scrollViewRef}
+                    style={styles.chatTranscriptPort}
+                    nestedScrollEnabled={true}
+                    showsVerticalScrollIndicator={true}
+                    onContentSizeChange={() =>
+                      scrollViewRef.current?.scrollToEnd({ animated: true })
+                    }
+                  >
+                    {chatMessages.map((chat) => {
+                      const isUser = chat.sender === currentTicket.customerName;
+                      return (
+                        <View
+                          key={chat.id}
+                          style={[
+                            styles.messageBubbleFrame,
+                            isUser ? styles.bubbleLeft : styles.bubbleRight,
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.messageBubble,
+                              isUser
+                                ? styles.bgBubbleLeft
+                                : styles.bgBubbleRight,
+                              isAndroid && { elevation: 1 },
+                            ]}
+                          >
+                            <View style={styles.messageHeader}>
+                              <Text style={styles.senderIdentityLabel}>
+                                {chat.sender}
+                              </Text>
+                              <Text style={styles.messageTimeText}>
+                                {chat.time}
+                              </Text>
+                            </View>
+                            <Text
+                              style={[
+                                styles.messageText,
+                                isUser ? styles.textDark : styles.textLight,
+                              ]}
+                            >
+                              {chat.message}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
 
-              <View style={styles.terminalActionToolbarRow}>
-                <TouchableOpacity style={styles.markResolvedButton}>
-                  <Text style={styles.resolvedBtnText}>✓ Mark as Resolved</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.dispatchMessageButton}>
-                  <Text style={styles.dispatchBtnText}>Send Message ➔</Text>
-                </TouchableOpacity>
+                  <View style={styles.horizontalLineDivider} />
+
+                  {/* Input Area */}
+                  <View style={styles.inputSection}>
+                    <Text style={styles.textareaFieldLabel}>
+                      <Ionicons
+                        name="chatbubble-ellipses"
+                        size={12}
+                        color="#6B7280"
+                      />{" "}
+                      Response Message
+                    </Text>
+                    <View style={styles.chatInputTextareaContainer}>
+                      <TextInput
+                        style={[
+                          styles.terminalTextareaInput,
+                          isAndroid && { paddingVertical: 12 },
+                        ]}
+                        multiline={true}
+                        numberOfLines={3}
+                        placeholder="Type your response here..."
+                        placeholderTextColor="#9CA3AF"
+                        value={resolutionMessage}
+                        onChangeText={setResolutionMessage}
+                      />
+                    </View>
+
+                    <View style={styles.terminalActionToolbarRow}>
+                      <TouchableOpacity
+                        style={styles.markResolvedButton}
+                        onPress={handleResolveTicket}
+                      >
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={18}
+                          color="#059669"
+                        />
+                        <Text style={styles.resolvedBtnText}>Resolve</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.dispatchMessageButton}
+                        onPress={handleSendMessage}
+                      >
+                        <LinearGradient
+                          colors={["#D95D29", "#c04e21"]}
+                          style={styles.dispatchGradient}
+                        >
+                          <Text style={styles.dispatchBtnText}>
+                            Send Message
+                          </Text>
+                          <Ionicons name="send" size={16} color="white" />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </Animated.View>
               </View>
             </View>
-          </View>
-        </View>
-      </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </AdminLayout>
   );
 }
@@ -302,8 +567,11 @@ export default function ComplaintsSupport() {
 const styles = StyleSheet.create({
   pageWrapper: {
     flex: 1,
-    backgroundColor: "#F3F3F3",
-    padding: isWeb ? 24 : 14,
+    backgroundColor: "#F9FAFB",
+  },
+  scrollContent: {
+    padding: isWeb ? 24 : 16,
+    paddingBottom: isAndroid ? 80 : 40,
   },
   rowLayout: {
     flexDirection: "row",
@@ -311,166 +579,250 @@ const styles = StyleSheet.create({
   columnLayout: {
     flexDirection: "column",
   },
-  breadcrumbHeader: {
+  headerSection: {
+    flexDirection: isWeb ? "row" : "column",
+    justifyContent: "space-between",
+    alignItems: isWeb ? "center" : "flex-start",
     marginBottom: 24,
+    gap: 16,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  headerIconGradient: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
   mainTitleText: {
-    fontSize: isWeb ? 26 : 20,
+    fontSize: isWeb ? 28 : 22,
     fontWeight: "900",
-    color: "#111111",
+    color: "#111827",
   },
   subtitleText: {
-    fontSize: 13,
-    color: "#666666",
+    fontSize: 14,
+    color: "#6B7280",
     marginTop: 4,
+  },
+  headerStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerStat: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "white",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  headerStatText: {
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "500",
   },
   workspaceSplitRow: {
     justifyContent: "space-between",
-    gap: 24,
-    paddingBottom: 60,
+    gap: isWeb ? 24 : 16,
   },
   leftLedgerColumn: {
-    gap: 16,
+    gap: 12,
   },
   rightChatColumn: {
-    gap: 16,
+    gap: 12,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
   sectionHeadingTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "800",
-    color: "#111111",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    color: "#111827",
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#FEF3F0",
+    borderRadius: 8,
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#D95D29",
   },
   ticketsStack: {
     gap: 12,
   },
   ticketRowItemCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
+  },
+  ticketAndroid: {
+    elevation: 2,
   },
   ticketCardActive: {
     borderColor: "#D95D29",
-    borderWidth: 1.5,
-    backgroundColor: "rgba(217, 93, 41, 0.01)",
+    borderWidth: 2,
+    backgroundColor: "#FEFAF8",
   },
   cardInlineHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
   },
-  ticketIdText: {
-    fontSize: 13,
+  ticketHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  ticketBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  ticketBadgeText: {
+    fontSize: 11,
     fontWeight: "800",
-    color: "#4B5563",
-  },
-  textOrangeTheme: {
-    color: "#D95D29",
+    color: "white",
   },
   priorityLabelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 4,
-  },
-  bgRed: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-  },
-  bgOrange: {
-    backgroundColor: "rgba(245, 158, 11, 0.12)",
-  },
-  bgGrey: {
-    backgroundColor: "rgba(107, 114, 128, 0.12)",
+    borderRadius: 6,
   },
   priorityBadgeText: {
-    fontSize: 9.5,
-    fontWeight: "800",
-    color: "#111111",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   ticketCategoryLabel: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#111111",
-    marginTop: 8,
+    color: "#111827",
+    marginBottom: 6,
   },
   ticketDescSummary: {
-    fontSize: 12.5,
-    color: "#4B5563",
+    fontSize: 12,
+    color: "#6B7280",
     lineHeight: 18,
-    marginTop: 4,
+    marginBottom: 12,
   },
-  horizontalLineDivider: {
-    height: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 12,
-  },
-  cardInlineFooterRow: {
+  ticketFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: 8,
+  },
+  customerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   customerNameText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#111111",
+    color: "#374151",
+  },
+  timeInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   timestampText: {
-    fontSize: 11.5,
+    fontSize: 11,
     color: "#9CA3AF",
   },
   chatTerminalCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    padding: 20,
+    padding: isWeb ? 20 : 16,
+    overflow: "hidden",
   },
   chatHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
+    alignItems: "center",
     gap: 12,
+    marginBottom: 8,
+  },
+  chatHeaderInfo: {
+    flex: 1,
   },
   chatHeaderTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800",
-    color: "#111111",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  chatHeaderMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  metaDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: "#E5E7EB",
   },
   chatHeaderSubtitle: {
     fontSize: 12,
     color: "#6B7280",
-    marginTop: 2,
   },
-  statusGroupBadgeWrapper: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  statusLabelIndicatorText: {
-    fontSize: 11.5,
-    color: "#4B5563",
+  statusText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
-  boldStatusValue: {
-    fontWeight: "800",
-    color: "#111111",
+  horizontalLineDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 16,
   },
   chatTranscriptPort: {
-    height: 240,
-    paddingRight: 4,
+    height: isWeb ? 280 : 320,
   },
   messageBubbleFrame: {
     flexDirection: "row",
-    marginBottom: 14,
+    marginBottom: 12,
     width: "100%",
   },
   bubbleLeft: {
@@ -481,23 +833,31 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: "85%",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 12,
   },
   bgBubbleLeft: {
     backgroundColor: "#F3F4F6",
-    borderTopLeftRadius: 2,
+    borderBottomLeftRadius: 4,
   },
   bgBubbleRight: {
-    backgroundColor: "#111111",
-    borderTopRightRadius: 2,
+    backgroundColor: "#D95D29",
+    borderBottomRightRadius: 4,
+  },
+  messageHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
   },
   senderIdentityLabel: {
-    fontSize: 9,
-    fontWeight: "800",
+    fontSize: 10,
+    fontWeight: "700",
     color: "#9CA3AF",
-    letterSpacing: 0.3,
-    marginBottom: 4,
+  },
+  messageTimeText: {
+    fontSize: 9,
+    color: "#9CA3AF",
   },
   messageText: {
     fontSize: 13,
@@ -509,36 +869,27 @@ const styles = StyleSheet.create({
   textLight: {
     color: "#FFFFFF",
   },
-  messageTimeText: {
-    fontSize: 9.5,
-    textAlign: "right",
-    marginTop: 6,
-  },
-  textGreySub: {
-    color: "#9CA3AF",
-  },
-  textMutedLight: {
-    color: "#64748b",
+  inputSection: {
+    marginTop: 4,
   },
   textareaFieldLabel: {
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 11,
+    fontWeight: "700",
     color: "#6B7280",
-    letterSpacing: 0.5,
     marginBottom: 8,
   },
   chatInputTextareaContainer: {
     backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 12,
   },
   terminalTextareaInput: {
-    fontSize: 13,
-    color: "#111111",
-    height: 65,
+    fontSize: 14,
+    color: "#111827",
+    minHeight: 70,
     textAlignVertical: "top",
   },
   terminalActionToolbarRow: {
@@ -548,29 +899,36 @@ const styles = StyleSheet.create({
   markResolvedButton: {
     flex: 1,
     height: 44,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#D1D5DB",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    gap: 6,
   },
   resolvedBtnText: {
-    color: "#374151",
-    fontSize: 12.5,
-    fontWeight: "600",
+    color: "#059669",
+    fontSize: 13,
+    fontWeight: "700",
   },
   dispatchMessageButton: {
     flex: 1.2,
-    backgroundColor: "#D95D29",
-    height: 44,
-    borderRadius: 8,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  dispatchGradient: {
+    flex: 1,
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    gap: 8,
+    height: 44,
   },
   dispatchBtnText: {
     color: "#FFFFFF",
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: "700",
   },
 });
