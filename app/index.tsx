@@ -115,7 +115,7 @@ export default function AdminLoginPage() {
 
                     {/* Forgot Password Link */}
                     <TouchableOpacity style={styles.forgotPasswordContainer}>
-                      <Text style={styles.forgotText}>Forgot Password?</Text>
+                      <Text style={styles.forgotText}>Forgot Password ?</Text>
                     </TouchableOpacity>
 
                     {/* Action Login Button */}
