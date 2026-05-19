@@ -3,14 +3,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
 import {
-    Dimensions,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import AdminLayout from "../components/AdminLayout";
 
@@ -327,13 +327,6 @@ export default function RealEstateDashboard() {
                 <View style={styles.listingBody}>
                   <View style={styles.listingHeader}>
                     <Text style={styles.listingPrice}>{listing.price}</Text>
-                    <TouchableOpacity style={styles.listingFavorite}>
-                      <Ionicons
-                        name="heart-outline"
-                        size={18}
-                        color="#D95D29"
-                      />
-                    </TouchableOpacity>
                   </View>
 
                   <Text style={styles.listingTitle}>{listing.title}</Text>

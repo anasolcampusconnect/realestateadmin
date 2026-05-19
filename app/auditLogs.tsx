@@ -2,19 +2,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    Dimensions,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import AdminLayout from "../components/AdminLayout";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 1024;
 
 interface AuditLogEntry {
@@ -619,11 +620,11 @@ export default function SystemAuditLogs() {
         visible={isDetailModalOpen}
         onRequestClose={() => setIsDetailModalOpen(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsDetailModalOpen(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setIsDetailModalOpen(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
           <View style={styles.modalContentCard}>
             <LinearGradient
               colors={["#D95D29", "#c04e21"]}
@@ -647,139 +648,151 @@ export default function SystemAuditLogs() {
               </View>
             </LinearGradient>
 
-            {selectedLog && (
-              <View style={styles.modalBody}>
-                <View style={styles.modalEventIdContainer}>
-                  <Text style={styles.modalEventIdLabel}>Event ID</Text>
-                  <Text style={styles.modalEventId}>{selectedLog.id}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons
-                      name="information-circle"
-                      size={18}
-                      color="#D95D29"
-                    />
-                    <Text style={styles.detailSectionTitle}>
-                      Basic Information
-                    </Text>
+            {/* 🔹 FIX: Wrapped body fields in a clean scroll box with restricted max height */}
+            <ScrollView
+              style={styles.modalFormScroll}
+              contentContainerStyle={styles.modalFormScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              {selectedLog && (
+                <View style={styles.modalBodyInternal}>
+                  <View style={styles.modalEventIdContainer}>
+                    <Text style={styles.modalEventIdLabel}>Event ID</Text>
+                    <Text style={styles.modalEventId}>{selectedLog.id}</Text>
                   </View>
-                  <View style={styles.detailGrid}>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Action Type</Text>
-                      <View style={styles.actionTag}>
-                        <Ionicons
-                          name={getActionIcon(selectedLog.action) as any}
-                          size={12}
-                          color="#D95D29"
-                        />
-                        <Text style={styles.detailValue}>
-                          {selectedLog.action.replace(/_/g, " ")}
-                        </Text>
-                      </View>
+
+                  <View style={styles.detailSection}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons
+                        name="information-circle"
+                        size={18}
+                        color="#D95D29"
+                      />
+                      <Text style={styles.detailSectionTitle}>
+                        Basic Information
+                      </Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Status</Text>
-                      <View
-                        style={[
-                          styles.modalStatusBadge,
-                          {
-                            backgroundColor: getStatusConfig(selectedLog.status)
-                              .bg,
-                          },
-                        ]}
-                      >
+                    <View style={styles.detailGrid}>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Action Type</Text>
+                        <View style={styles.actionTag}>
+                          <Ionicons
+                            name={getActionIcon(selectedLog.action) as any}
+                            size={12}
+                            color="#D95D29"
+                          />
+                          <Text style={styles.detailValue}>
+                            {selectedLog.action.replace(/_/g, " ")}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Status</Text>
                         <View
                           style={[
-                            styles.statusDot,
+                            styles.modalStatusBadge,
                             {
                               backgroundColor: getStatusConfig(
                                 selectedLog.status,
-                              ).text,
+                              ).bg,
                             },
                           ]}
-                        />
-                        <Text
-                          style={[
-                            styles.modalStatusText,
-                            { color: getStatusConfig(selectedLog.status).text },
-                          ]}
                         >
-                          {getStatusConfig(selectedLog.status).label}
-                        </Text>
+                          <View
+                            style={[
+                              styles.statusDot,
+                              {
+                                backgroundColor: getStatusConfig(
+                                  selectedLog.status,
+                                ).text,
+                              },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.modalStatusText,
+                              {
+                                color: getStatusConfig(selectedLog.status).text,
+                              },
+                            ]}
+                          >
+                            {getStatusConfig(selectedLog.status).label}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
 
-                <View style={styles.detailSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="person" size={18} color="#D95D29" />
-                    <Text style={styles.detailSectionTitle}>
-                      Operator Details
-                    </Text>
-                  </View>
-                  <View style={styles.detailGrid}>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Operator Name</Text>
-                      <Text style={styles.detailValue}>
-                        {selectedLog.operator}
+                  <View style={styles.detailSection}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="person" size={18} color="#D95D29" />
+                      <Text style={styles.detailSectionTitle}>
+                        Operator Details
                       </Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Role</Text>
-                      <View style={styles.roleBadge}>
-                        <Text style={styles.roleText}>{selectedLog.role}</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="disc" size={18} color="#D95D29" />
-                    <Text style={styles.detailSectionTitle}>
-                      Target Information
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Target Object</Text>
-                    <View style={styles.targetBadge}>
-                      <Text style={styles.detailValue}>
-                        {selectedLog.target}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="time" size={18} color="#D95D29" />
-                    <Text style={styles.detailSectionTitle}>
-                      Timestamp & Location
-                    </Text>
-                  </View>
-                  <View style={styles.detailGrid}>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Timestamp</Text>
-                      <Text style={styles.detailValue}>
-                        {selectedLog.timestamp}
-                      </Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>IP Address</Text>
-                      <View style={styles.ipBadge}>
-                        <Ionicons name="location" size={12} color="#6b7280" />
+                    <View style={styles.detailGrid}>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Operator Name</Text>
                         <Text style={styles.detailValue}>
-                          {selectedLog.ipAddress}
+                          {selectedLog.operator}
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Role</Text>
+                        <View style={styles.roleBadge}>
+                          <Text style={styles.roleText}>
+                            {selectedLog.role}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="disc" size={18} color="#D95D29" />
+                      <Text style={styles.detailSectionTitle}>
+                        Target Information
+                      </Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Target Object</Text>
+                      <View style={styles.targetBadge}>
+                        <Text style={styles.detailValue}>
+                          {selectedLog.target}
                         </Text>
                       </View>
                     </View>
                   </View>
+
+                  <View style={styles.detailSection}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="time" size={18} color="#D95D29" />
+                      <Text style={styles.detailSectionTitle}>
+                        Timestamp & Location
+                      </Text>
+                    </View>
+                    <View style={styles.detailGrid}>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Timestamp</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedLog.timestamp}
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>IP Address</Text>
+                        <View style={styles.ipBadge}>
+                          <Ionicons name="location" size={12} color="#6b7280" />
+                          <Text style={styles.detailValue}>
+                            {selectedLog.ipAddress}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
+            </ScrollView>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
@@ -790,7 +803,7 @@ export default function SystemAuditLogs() {
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </AdminLayout>
   );
@@ -842,6 +855,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  modalCloseIcon: {
+    padding: 4,
+    cursor: Platform.OS === "web" ? "pointer" : "auto",
   },
   dateRangeButton: {
     flexDirection: "row",
@@ -1167,18 +1184,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#9ca3af",
   },
-  clearFiltersButton: {
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "#fef3f0",
-    borderRadius: 20,
-  },
-  clearFiltersText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#D95D29",
-  },
   mobileCardsStream: {
     gap: 16,
   },
@@ -1255,7 +1260,7 @@ const styles = StyleSheet.create({
   },
   modalContentCard: {
     backgroundColor: "#FFFFFF",
-    width: isWeb ? 650 : "100%",
+    width: isWeb ? 540 : "100%", // 🔹 Decreased explicit sizing width profile bounds slightly
     borderRadius: 24,
     overflow: "hidden",
     shadowColor: "#000",
@@ -1265,84 +1270,90 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   modalGradientHeader: {
-    padding: 24,
+    padding: 20,
   },
   modalHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  modalCloseIcon: {
-    padding: 4,
+    alignItems: "center",
   },
   modalHeadingTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
     color: "white",
   },
   modalSubheadingText: {
     fontSize: 12,
     color: "rgba(255,255,255,0.8)",
-    marginTop: 6,
+    marginTop: 4,
   },
-  modalBody: {
-    padding: 24,
-    gap: 24,
+  // 🔹 Restricted max-height scroll assignment configurations
+  modalFormScroll: {
+    flex: undefined,
+    maxHeight: height * 0.52,
+    backgroundColor: "#ffffff",
+  },
+  modalFormScrollContent: {
+    padding: 20,
+    gap: 20,
+  },
+  modalBodyInternal: {
+    gap: 20,
   },
   modalEventIdContainer: {
     backgroundColor: "#f9fafb",
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
   modalEventIdLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
     color: "#9ca3af",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   modalEventId: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
     color: "#D95D29",
-    marginTop: 4,
+    marginTop: 2,
   },
   detailSection: {
-    gap: 12,
+    gap: 10,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   detailSectionTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: "#374151",
   },
   detailGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: 14,
   },
   detailItem: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 180,
   },
   detailLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
     color: "#9ca3af",
-    marginBottom: 6,
+    marginBottom: 4,
     textTransform: "uppercase",
     letterSpacing: 0.3,
   },
   detailValue: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "500",
     color: "#111111",
   },
@@ -1350,29 +1361,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: "#fef3f0",
-    borderRadius: 8,
+    borderRadius: 6,
     alignSelf: "flex-start",
   },
   roleBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: "#eff6ff",
-    borderRadius: 8,
+    borderRadius: 6,
     alignSelf: "flex-start",
   },
   roleText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     color: "#3b82f6",
   },
   targetBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     backgroundColor: "#f9fafb",
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
@@ -1380,39 +1391,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: "#f3f4f6",
-    borderRadius: 8,
+    borderRadius: 6,
     alignSelf: "flex-start",
   },
   modalStatusBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
     alignSelf: "flex-start",
   },
   modalStatusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   modalFooter: {
-    padding: 20,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
     alignItems: "center",
+    backgroundColor: "#ffffff",
   },
   modalCloseFooterButton: {
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
     backgroundColor: "#f3f4f6",
   },
   modalCloseFooterText: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "600",
     color: "#6b7280",
   },

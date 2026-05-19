@@ -1,18 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-    Alert,
-    Dimensions,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import AdminLayout from "../components/AdminLayout";
 
@@ -43,6 +45,12 @@ export default function PropertiesDirectory() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  // 🔹 Success Modal States
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [approvedProperty, setApprovedProperty] = useState<PropertyItem | null>(
+    null,
+  );
+
   // Form State for dynamic new listing configurations
   const [newProperty, setNewProperty] = useState({
     title: "",
@@ -53,6 +61,7 @@ export default function PropertiesDirectory() {
     baths: "",
     sqft: "",
     agent: "",
+    image: "",
   });
 
   const [propertiesData, setPropertiesData] = useState<PropertyItem[]>([
@@ -190,17 +199,57 @@ export default function PropertiesDirectory() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const metrics = {
-    total: propertiesData.length,
-    approved: propertiesData.filter((p) => p.status === "Approved").length,
-    pending: propertiesData.filter((p) => p.status === "Pending").length,
-    rejected: propertiesData.filter((p) => p.status === "Rejected").length,
-    totalValue: "$2.68M",
-  };
+  const metrics = useMemo(() => {
+    return {
+      total: propertiesData.length,
+      approved: propertiesData.filter((p) => p.status === "Approved").length,
+      pending: propertiesData.filter((p) => p.status === "Pending").length,
+      rejected: propertiesData.filter((p) => p.status === "Rejected").length,
+      totalValue: "$2.68M",
+    };
+  }, [propertiesData]);
 
   const handleAudit = (property: PropertyItem) => {
     setSelectedProperty(property);
     setIsDetailModalOpen(true);
+  };
+
+  // 🔹 Triggered when clicking the Approved action button inside the detail audit loop
+  const handleApproveProperty = () => {
+    if (!selectedProperty) return;
+
+    // Mutate internal state dynamically to mark item as verified
+    setPropertiesData((prev) =>
+      prev.map((p) =>
+        p.id === selectedProperty.id ? { ...p, status: "Approved" } : p,
+      ),
+    );
+
+    setApprovedProperty({ ...selectedProperty, status: "Approved" });
+    setIsDetailModalOpen(false);
+    setIsSuccessModalOpen(true);
+  };
+
+  const pickImage = async () => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Please allow camera roll access to upload property photos.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setNewProperty({ ...newProperty, image: result.assets[0].uri });
+    }
   };
 
   const handleCreateProperty = () => {
@@ -218,6 +267,9 @@ export default function PropertiesDirectory() {
     }
 
     const newId = `PRP-${Math.floor(Math.random() * 9000) + 1000}`;
+    const defaultFallbackImage =
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80";
+
     const propertyToAdd: PropertyItem = {
       id: newId,
       title: newProperty.title,
@@ -230,8 +282,7 @@ export default function PropertiesDirectory() {
       beds: parseInt(newProperty.beds) || 0,
       baths: parseInt(newProperty.baths) || 0,
       sqft: parseInt(newProperty.sqft) || 0,
-      image:
-        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+      image: newProperty.image || defaultFallbackImage,
       agent: newProperty.agent,
     };
 
@@ -247,6 +298,7 @@ export default function PropertiesDirectory() {
       baths: "",
       sqft: "",
       agent: "",
+      image: "",
     });
 
     Alert.alert(
@@ -558,10 +610,7 @@ export default function PropertiesDirectory() {
                       source={{ uri: property.image }}
                       style={styles.assetVisualImage}
                     />
-                    <LinearGradient
-                      colors={["transparent", "rgba(0,0,0,0.7)"]}
-                      style={styles.imageOverlay}
-                    />
+                    <View style={styles.imageOverlay} />
                     <View style={styles.floatingIdBadge}>
                       <Ionicons name="pricetag" size={10} color="white" />
                       <Text style={styles.badgeIdText}>{property.id}</Text>
@@ -592,7 +641,6 @@ export default function PropertiesDirectory() {
                         size={10}
                         color="white"
                       />
-                      {/* FIXED: Added missing styles mapping link reference target */}
                       <Text style={styles.typeBadgeText}>{property.type}</Text>
                     </View>
                   </View>
@@ -701,11 +749,11 @@ export default function PropertiesDirectory() {
         visible={isDetailModalOpen}
         onRequestClose={() => setIsDetailModalOpen(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsDetailModalOpen(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setIsDetailModalOpen(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
           <View
             style={[styles.modalContentCard, { width: isWeb ? 600 : "92%" }]}
           >
@@ -852,17 +900,21 @@ export default function PropertiesDirectory() {
               >
                 <Text style={styles.modalCloseText}>Close</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalActionButton}>
+              {/* 🔹 FIX: Linked to new handleApproveProperty method */}
+              <TouchableOpacity
+                style={styles.modalActionButton}
+                onPress={handleApproveProperty}
+              >
                 <LinearGradient
-                  colors={["#D95D29", "#c04e21"]}
+                  colors={["#10b981", "#059669"]}
                   style={styles.modalActionGradient}
                 >
-                  <Text style={styles.modalActionText}>Start Audit</Text>
+                  <Text style={styles.modalActionText}>Approved</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Add New Property Modal Container Component */}
@@ -872,11 +924,11 @@ export default function PropertiesDirectory() {
         visible={isAddModalOpen}
         onRequestClose={() => setIsAddModalOpen(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsAddModalOpen(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setIsAddModalOpen(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
           <View
             style={[styles.modalContentCard, { width: isWeb ? 540 : "92%" }]}
           >
@@ -898,7 +950,34 @@ export default function PropertiesDirectory() {
               style={styles.modalFormScroll}
               contentContainerStyle={styles.modalFormScrollContent}
               showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
             >
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Property Image</Text>
+                <TouchableOpacity
+                  style={styles.imagePickerBox}
+                  onPress={pickImage}
+                >
+                  {newProperty.image ? (
+                    <Image
+                      source={{ uri: newProperty.image }}
+                      style={styles.imagePickerPreview}
+                    />
+                  ) : (
+                    <View style={styles.imagePickerPlaceholder}>
+                      <Ionicons
+                        name="camera-outline"
+                        size={28}
+                        color="#9ca3af"
+                      />
+                      <Text style={styles.imagePickerText}>
+                        Upload Property Photo
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Property Title *</Text>
                 <View style={styles.formInputContainer}>
@@ -1058,7 +1137,7 @@ export default function PropertiesDirectory() {
                 <Text style={styles.modalCloseText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalActionButton}
+                style={styles.modalSaveButton}
                 onPress={handleCreateProperty}
               >
                 <LinearGradient
@@ -1070,7 +1149,202 @@ export default function PropertiesDirectory() {
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* 🔹 Success Modal for Audited/Approved Properties 🔹 */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isSuccessModalOpen}
+        onRequestClose={() => setIsSuccessModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback
+            onPress={() => setIsSuccessModalOpen(false)}
+          >
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
+          <View
+            style={[styles.modalContentCard, { width: isWeb ? 450 : "88%" }]}
+          >
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: "rgba(16, 185, 129, 0.12)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={36} color="#10b981" />
+              </View>
+
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "900",
+                  color: "#111111",
+                  textAlign: "center",
+                }}
+              >
+                Listing Approved
+              </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: "#6b7280",
+                  textAlign: "center",
+                  marginTop: 4,
+                  marginBottom: 20,
+                }}
+              >
+                The real estate asset has been verified and published to the
+                public portal directory.
+              </Text>
+
+              <View
+                style={{
+                  backgroundColor: "#f9fafb",
+                  borderRadius: 12,
+                  padding: 14,
+                  width: "100%",
+                  borderWidth: 1,
+                  borderColor: "#e5e7eb",
+                  gap: 6,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Property ID
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#D95D29",
+                      fontWeight: "700",
+                    }}
+                  >
+                    {approvedProperty?.id}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Title
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#111111",
+                      fontWeight: "700",
+                      flex: 1,
+                      textAlign: "right",
+                      marginLeft: 16,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {approvedProperty?.title}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Price
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#10b981",
+                      fontWeight: "700",
+                    }}
+                  >
+                    {approvedProperty?.price}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Agent
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#374151",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {approvedProperty?.agent}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#111111",
+                  width: "100%",
+                  height: 44,
+                  borderRadius: 10,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+                onPress={() => setIsSuccessModalOpen(false)}
+              >
+                <Text
+                  style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "700" }}
+                >
+                  Return to Directory
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </AdminLayout>
   );
@@ -1334,10 +1608,11 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     position: "absolute",
+    top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    height: 60,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
   },
   floatingIdBadge: {
     position: "absolute",
@@ -1527,9 +1802,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6b7280",
   },
-  mobileLedgerContainer: {
-    backgroundColor: "transparent",
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -1540,7 +1812,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     overflow: "hidden",
-    boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.25)",
     elevation: 10,
     maxHeight: height * 0.82,
   },
@@ -1773,5 +2044,37 @@ const styles = StyleSheet.create({
   },
   typeOptionTextActive: {
     color: "#FFFFFF",
+  },
+  modalSaveButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  imagePickerBox: {
+    width: "100%",
+    height: 140,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderStyle: "dashed",
+    backgroundColor: "#f9fafb",
+    overflow: "hidden",
+  },
+  imagePickerPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+  },
+  imagePickerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  imagePickerPreview: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
 });

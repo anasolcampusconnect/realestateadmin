@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import AdminLayout from "../components/AdminLayout";
@@ -29,6 +30,60 @@ interface Agent {
   permissions: "Full Access" | "Standard" | "Restricted" | "No Access";
 }
 
+// Move baseline data out of the component to keep its structural state reference absolute
+const INITIAL_MOCK_AGENTS: Agent[] = [
+  {
+    id: "AGT-101",
+    name: "Rohan Sharma",
+    email: "rohan.sharma@kontako.com",
+    region: "Mumbai South",
+    listings: 24,
+    salesClosed: 14,
+    status: "Active",
+    permissions: "Full Access",
+  },
+  {
+    id: "AGT-102",
+    name: "Ananya Iyer",
+    email: "ananya.i@kontako.com",
+    region: "Bangalore East",
+    listings: 18,
+    salesClosed: 9,
+    status: "Active",
+    permissions: "Standard",
+  },
+  {
+    id: "AGT-103",
+    name: "Vikram Malhotra",
+    email: "v.malhotra@kontako.com",
+    region: "Delhi NCR",
+    listings: 31,
+    salesClosed: 22,
+    status: "Active",
+    permissions: "Full Access",
+  },
+  {
+    id: "AGT-104",
+    name: "Sneha Reddy",
+    email: "sneha.r@kontako.com",
+    region: "Hyderabad West",
+    listings: 7,
+    salesClosed: 2,
+    status: "Pending",
+    permissions: "Restricted",
+  },
+  {
+    id: "AGT-105",
+    name: "Kabir Mehta",
+    email: "kabir.m@kontako.com",
+    region: "Pune Central",
+    listings: 0,
+    salesClosed: 0,
+    status: "Suspended",
+    permissions: "No Access",
+  },
+];
+
 export default function AgentManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<
@@ -38,7 +93,11 @@ export default function AgentManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
-  // Form state for adding new agent
+  // Success modal tracking triggers
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [lastAddedAgent, setLastAddedAgent] = useState<Agent | null>(null);
+
+  // Form input model targets
   const [newAgent, setNewAgent] = useState({
     name: "",
     email: "",
@@ -51,71 +110,23 @@ export default function AgentManagement() {
       | "No Access",
   });
 
-  const [agentsData, setAgentsData] = useState<Agent[]>([
-    {
-      id: "AGT-101",
-      name: "Rohan Sharma",
-      email: "rohan.sharma@kontako.com",
-      region: "Mumbai South",
-      listings: 24,
-      salesClosed: 14,
-      status: "Active",
-      permissions: "Full Access",
-    },
-    {
-      id: "AGT-102",
-      name: "Ananya Iyer",
-      email: "ananya.i@kontako.com",
-      region: "Bangalore East",
-      listings: 18,
-      salesClosed: 9,
-      status: "Active",
-      permissions: "Standard",
-    },
-    {
-      id: "AGT-103",
-      name: "Vikram Malhotra",
-      email: "v.malhotra@kontako.com",
-      region: "Delhi NCR",
-      listings: 31,
-      salesClosed: 22,
-      status: "Active",
-      permissions: "Full Access",
-    },
-    {
-      id: "AGT-104",
-      name: "Sneha Reddy",
-      email: "sneha.r@kontako.com",
-      region: "Hyderabad West",
-      listings: 7,
-      salesClosed: 2,
-      status: "Pending",
-      permissions: "Restricted",
-    },
-    {
-      id: "AGT-105",
-      name: "Kabir Mehta",
-      email: "kabir.m@kontako.com",
-      region: "Pune Central",
-      listings: 0,
-      salesClosed: 0,
-      status: "Suspended",
-      permissions: "No Access",
-    },
-  ]);
+  // Use structural global reference array bounds to keep it static
+  const [agentsData, setAgentsData] = useState<Agent[]>(INITIAL_MOCK_AGENTS);
 
-  const filteredAgents = agentsData.filter((agent) => {
-    const matchesSearch =
-      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredAgents = useMemo(() => {
+    return agentsData.filter((agent) => {
+      const matchesSearch =
+        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      selectedStatusFilter === "All" || agent.status === selectedStatusFilter;
+      const matchesStatus =
+        selectedStatusFilter === "All" || agent.status === selectedStatusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
+  }, [agentsData, searchQuery, selectedStatusFilter]);
 
   const totalActive = agentsData.filter((a) => a.status === "Active").length;
   const totalPending = agentsData.filter((a) => a.status === "Pending").length;
@@ -125,42 +136,45 @@ export default function AgentManagement() {
   const totalListings = agentsData.reduce((sum, a) => sum + a.listings, 0);
   const totalSales = agentsData.reduce((sum, a) => sum + a.salesClosed, 0);
   const avgConversion =
-    totalSales > 0 ? ((totalSales / totalListings) * 100).toFixed(1) : "0";
+    totalListings > 0 ? ((totalSales / totalListings) * 100).toFixed(1) : "0";
 
-  const metrics = [
-    {
-      label: "TOTAL ACTIVE AGENTS",
-      value: totalActive.toString(),
-      subtext: "Currently onboarded",
-      icon: "people-outline",
-      gradient: ["#667eea", "#764ba2"] as const,
-      color: "#667eea",
-    },
-    {
-      label: "PENDING VERIFICATIONS",
-      value: totalPending.toString(),
-      subtext: "Awaiting approval",
-      icon: "time-outline",
-      gradient: ["#f093fb", "#f5576c"] as const,
-      color: "#f5576c",
-    },
-    {
-      label: "TOTAL LISTINGS",
-      value: totalListings.toString(),
-      subtext: "Active properties",
-      icon: "home-outline",
-      gradient: ["#4facfe", "#00f2fe"] as const,
-      color: "#4facfe",
-    },
-    {
-      label: "CONVERSION RATE",
-      value: `${avgConversion}%`,
-      subtext: "Sales to listings",
-      icon: "trending-up-outline",
-      gradient: ["#fa709a", "#fee140"] as const,
-      color: "#fee140",
-    },
-  ];
+  const metrics = useMemo(
+    () => [
+      {
+        label: "TOTAL ACTIVE AGENTS",
+        value: totalActive.toString(),
+        subtext: "Currently onboarded",
+        icon: "people-outline",
+        gradient: ["#667eea", "#764ba2"] as const,
+        color: "#667eea",
+      },
+      {
+        label: "PENDING VERIFICATIONS",
+        value: totalPending.toString(),
+        subtext: "Awaiting approval",
+        icon: "time-outline",
+        gradient: ["#f093fb", "#f5576c"] as const,
+        color: "#f5576c",
+      },
+      {
+        label: "TOTAL LISTINGS",
+        value: totalListings.toString(),
+        subtext: "Active properties",
+        icon: "home-outline",
+        gradient: ["#4facfe", "#00f2fe"] as const,
+        color: "#4facfe",
+      },
+      {
+        label: "CONVERSION RATE",
+        value: `${avgConversion}%`,
+        subtext: "Sales to listings",
+        icon: "trending-up-outline",
+        gradient: ["#fa709a", "#fee140"] as const,
+        color: "#fee140",
+      },
+    ],
+    [totalActive, totalPending, totalListings, avgConversion],
+  );
 
   const handleOpenActionModal = (agent: Agent) => {
     setSelectedAgent({ ...agent });
@@ -208,6 +222,7 @@ export default function AgentManagement() {
     };
 
     setAgentsData((prev) => [...prev, agentToAdd]);
+    setLastAddedAgent(agentToAdd);
 
     setNewAgent({
       name: "",
@@ -218,10 +233,14 @@ export default function AgentManagement() {
     });
 
     setIsAddModalOpen(false);
-    Alert.alert(
-      "Success",
-      `Agent ${newAgent.name} has been added successfully!`,
-    );
+    setIsSuccessModalOpen(true);
+  };
+
+  // 🔹 Refresh handler that resets filters to ensure the directory displays all agents immediately
+  const handleGoToDirectory = () => {
+    setSearchQuery("");
+    setSelectedStatusFilter("All");
+    setIsSuccessModalOpen(false);
   };
 
   const getStatusConfig = (status: string) => {
@@ -568,7 +587,6 @@ export default function AgentManagement() {
                           { backgroundColor: statusConfig.bg },
                         ]}
                       >
-                        {/* FIXED: Swapped out ")" syntax layout with a standard configuration closing array bracket "]" safely below */}
                         <View
                           style={[
                             styles.statusDot,
@@ -741,11 +759,11 @@ export default function AgentManagement() {
         visible={isEditModalOpen}
         onRequestClose={() => setIsEditModalOpen(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsEditModalOpen(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setIsEditModalOpen(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
           <View
             style={[styles.modalContentCard, { width: isWeb ? 500 : "90%" }]}
           >
@@ -830,7 +848,7 @@ export default function AgentManagement() {
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Add New Agent Modal */}
@@ -840,11 +858,11 @@ export default function AgentManagement() {
         visible={isAddModalOpen}
         onRequestClose={() => setIsAddModalOpen(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsAddModalOpen(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setIsAddModalOpen(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
           <View
             style={[
               styles.modalContentCard,
@@ -867,6 +885,7 @@ export default function AgentManagement() {
               style={styles.modalFormScroll}
               contentContainerStyle={styles.modalFormScrollContent}
               showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
             >
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Full Name *</Text>
@@ -1015,7 +1034,195 @@ export default function AgentManagement() {
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* Success Modal for Newly Onboarded Agents */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isSuccessModalOpen}
+        onRequestClose={handleGoToDirectory}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={handleGoToDirectory}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
+          <View
+            style={[styles.modalContentCard, { width: isWeb ? 450 : "88%" }]}
+          >
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: "rgba(16, 185, 129, 0.12)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={36} color="#10b981" />
+              </View>
+
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "900",
+                  color: "#111111",
+                  textAlign: "center",
+                }}
+              >
+                Agent Added Successfully
+              </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: "#6b7280",
+                  textAlign: "center",
+                  marginTop: 4,
+                  marginBottom: 20,
+                }}
+              >
+                The new profile is active and has been added to the directory.
+              </Text>
+
+              <View
+                style={{
+                  backgroundColor: "#f9fafb",
+                  borderRadius: 12,
+                  padding: 14,
+                  width: "100%",
+                  borderWidth: 1,
+                  borderColor: "#e5e7eb",
+                  gap: 6,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Agent ID
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#D95D29",
+                      fontWeight: "700",
+                    }}
+                  >
+                    {lastAddedAgent?.id}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Name
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#111111",
+                      fontWeight: "700",
+                    }}
+                  >
+                    {lastAddedAgent?.name}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Email
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#111111",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {lastAddedAgent?.email}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Region
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#374151",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {lastAddedAgent?.region}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#111111",
+                  width: "100%",
+                  height: 44,
+                  borderRadius: 10,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginTop: 20,
+                }}
+                onPress={handleGoToDirectory}
+              >
+                <Text
+                  style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "700" }}
+                >
+                  Go to Directory
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </AdminLayout>
   );
@@ -1059,6 +1266,32 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 20,
     paddingVertical: isWeb ? 12 : 10,
+  },
+  metricsSplitRowMobile: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    paddingTop: 8,
+  },
+  metricItemMobile: {
+    flex: 1,
+    alignItems: "center",
+  },
+  metricCountLabelMobile: {
+    fontSize: 10,
+    color: "#6b7280",
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  metricCountValueMobileOrange: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#D95D29",
+  },
+  metricCountValueMobileGreen: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#10b981",
   },
   addButtonText: {
     color: "white",
@@ -1413,32 +1646,6 @@ const styles = StyleSheet.create({
   statusBadgeTextMobile: {
     fontSize: 10,
     fontWeight: "700",
-  },
-  metricsSplitRowMobile: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    paddingTop: 8,
-  },
-  metricItemMobile: {
-    flex: 1,
-    alignItems: "center",
-  },
-  metricCountLabelMobile: {
-    fontSize: 10,
-    color: "#6b7280",
-    fontWeight: "500",
-    marginBottom: 2,
-  },
-  metricCountValueMobileOrange: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#D95D29",
-  },
-  metricCountValueMobileGreen: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#10b981",
   },
   mobileCardActionsRow: {
     flexDirection: "row",

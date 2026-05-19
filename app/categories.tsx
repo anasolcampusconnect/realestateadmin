@@ -1,32 +1,60 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-    Dimensions,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import AdminLayout from "../components/AdminLayout";
 
 const { width, height } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 1024;
 
+interface CategoryItem {
+  code: string;
+  name: string;
+  types: string[];
+  activeListings: number;
+  priority: string; // 🔹 FIX: Changed to open string to match style dynamic evaluation loops
+  trend: string;
+  icon: string;
+}
+
+interface LocationItem {
+  id: string;
+  sector: string;
+  city: string;
+  listings: number;
+  baseTaxRate: string;
+  surgeMultiplier: string;
+  growth: string;
+  icon: string;
+}
+
 export default function CategoriesManagement() {
   const [activeSegment, setActiveSegment] = useState<
-    "Categories" | "Locations" | "Pricing"
+    "Categories" | "Locations"
   >("Categories");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<
-    "category" | "location" | "pricing"
-  >("category");
+  const [modalType, setModalType] = useState<"category" | "location">(
+    "category",
+  );
 
-  const categoriesData = [
+  // Advanced Filters State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [trendFilter, setTrendFilter] = useState<
+    "All" | "Positive" | "High Volume"
+  >("All");
+
+  const categoriesData: CategoryItem[] = [
     {
       code: "CAT-RES",
       name: "Residential",
@@ -65,7 +93,7 @@ export default function CategoriesManagement() {
     },
   ];
 
-  const locationsData = [
+  const locationsData: LocationItem[] = [
     {
       id: "LOC-01",
       sector: "HITEC City",
@@ -108,35 +136,38 @@ export default function CategoriesManagement() {
     },
   ];
 
-  const pricingRules = [
-    {
-      ruleId: "PRC-FTR",
-      ruleName: "Featured Listing Boost",
-      description:
-        "Applies premium position placement surcharge fee for enhanced visibility",
-      delta: "+15% Platform Surcharge",
-      status: "Active",
-      icon: "trending-up",
-    },
-    {
-      ruleId: "PRC-SEA",
-      ruleName: "High Demand Season Factor",
-      description:
-        "Dynamic escalation modifier applied during high traction calendar cycles",
-      delta: "+8% Base Escalation",
-      status: "Active",
-      icon: "calendar",
-    },
-    {
-      ruleId: "PRC-NEW",
-      ruleName: "First-Time Agent Discount",
-      description:
-        "Introductory deduction modifier applied to direct onboarding pipelines",
-      delta: "-5% Onboarding Relief",
-      status: "Active",
-      icon: "gift",
-    },
-  ];
+  // Advanced Filter Evaluation Loops
+  const filteredCategories = useMemo(() => {
+    return categoriesData.filter((cat) => {
+      const matchesSearch =
+        cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cat.code.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTrend =
+        trendFilter === "All"
+          ? true
+          : trendFilter === "Positive"
+            ? cat.trend.startsWith("+")
+            : cat.activeListings >= 100;
+
+      return matchesSearch && matchesTrend;
+    });
+  }, [searchQuery, trendFilter]);
+
+  const filteredLocations = useMemo(() => {
+    return locationsData.filter((loc) => {
+      const matchesSearch =
+        loc.sector.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        loc.id.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTrend =
+        trendFilter === "All"
+          ? true
+          : trendFilter === "Positive"
+            ? loc.growth.startsWith("+")
+            : loc.listings >= 100;
+
+      return matchesSearch && matchesTrend;
+    });
+  }, [searchQuery, trendFilter]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -184,74 +215,100 @@ export default function CategoriesManagement() {
             <View style={{ flex: isWeb ? undefined : 1 }}>
               <Text style={styles.mainTitleText}>System Configuration</Text>
               <Text style={styles.subtitleText}>
-                Manage property classifications, regional zones, and pricing
-                rules
+                Manage property classifications and regional operational zones
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Enhanced Segmented Tabs */}
+        {/* Segmented Tabs */}
         <View
           style={isWeb ? styles.segmentedTabRow : styles.segmentedTabRowMobile}
         >
-          <ScrollView
-            horizontal={!isWeb}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={
-              !isWeb ? styles.segmentedTabScrollContentMobile : undefined
-            }
-            style={!isWeb ? { width: "100%" } : undefined}
-          >
-            {(["Categories", "Locations", "Pricing"] as const).map(
-              (segment) => (
-                <TouchableOpacity
-                  key={segment}
+          {(["Categories", "Locations"] as const).map((segment) => (
+            <TouchableOpacity
+              key={segment}
+              style={[
+                isWeb ? styles.segmentBtn : styles.segmentBtnMobile,
+                activeSegment === segment && styles.segmentBtnActive,
+              ]}
+              onPress={() => {
+                setActiveSegment(segment);
+                setSearchQuery("");
+              }}
+            >
+              <LinearGradient
+                colors={
+                  activeSegment === segment
+                    ? ["#D95D29", "#c04e21"]
+                    : ["transparent", "transparent"]
+                }
+                style={
+                  isWeb ? styles.segmentGradient : styles.segmentGradientMobile
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Ionicons
+                  name={segment === "Categories" ? "grid" : "location"}
+                  size={16}
+                  color={activeSegment === segment ? "white" : "#6b7280"}
+                />
+                <Text
                   style={[
-                    isWeb ? styles.segmentBtn : styles.segmentBtnMobile,
-                    activeSegment === segment && styles.segmentBtnActive,
+                    styles.segmentBtnText,
+                    activeSegment === segment && styles.segmentBtnTextActive,
                   ]}
-                  onPress={() => setActiveSegment(segment)}
                 >
-                  <LinearGradient
-                    colors={
-                      activeSegment === segment
-                        ? ["#D95D29", "#c04e21"]
-                        : ["transparent", "transparent"]
-                    }
-                    style={
-                      isWeb
-                        ? styles.segmentGradient
-                        : styles.segmentGradientMobile
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <Ionicons
-                      name={
-                        segment === "Categories"
-                          ? "grid"
-                          : segment === "Locations"
-                            ? "location"
-                            : "pricetag"
-                      }
-                      size={16}
-                      color={activeSegment === segment ? "white" : "#6b7280"}
-                    />
-                    <Text
-                      style={[
-                        styles.segmentBtnText,
-                        activeSegment === segment &&
-                          styles.segmentBtnTextActive,
-                      ]}
-                    >
-                      {segment}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ),
+                  {segment}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Filter Toolbar Shelf */}
+        <View style={styles.filterShelfCard}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={18} color="#9ca3af" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={`Search across active ${activeSegment.toLowerCase()}...`}
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={18} color="#9ca3af" />
+              </TouchableOpacity>
             )}
-          </ScrollView>
+          </View>
+
+          <View style={styles.filterInlineRow}>
+            <Text style={styles.filterShelfLabel}>Growth/Volume:</Text>
+            <View style={styles.filterGroup}>
+              {(["All", "Positive", "High Volume"] as const).map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  style={[
+                    styles.chipButton,
+                    trendFilter === mode && styles.chipActive,
+                  ]}
+                  onPress={() => setTrendFilter(mode)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      trendFilter === mode && styles.chipTextActive,
+                    ]}
+                  >
+                    {mode}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </View>
 
         {/* Content Section */}
@@ -260,14 +317,14 @@ export default function CategoriesManagement() {
             isWeb ? styles.ledgerWrapperCard : styles.mobileLedgerContainer
           }
         >
-          {/* Categories Section */}
+          {/* Categories Segment Layout view */}
           {activeSegment === "Categories" && (
             <View>
               <View style={styles.sectionHeaderRow}>
                 <View>
                   <Text style={styles.ledgerHeading}>Property Sectors</Text>
                   <Text style={styles.ledgerSubheading}>
-                    {categoriesData.length} categories configured
+                    {filteredCategories.length} classifications shown
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -294,10 +351,10 @@ export default function CategoriesManagement() {
                 <View style={styles.tableWrapper}>
                   <View style={styles.tableHeaderRow}>
                     <Text style={[styles.thCell, { width: "12%" }]}>Code</Text>
-                    <Text style={[styles.thCell, { width: "18%" }]}>
+                    <Text style={[styles.thCell, { width: "20%" }]}>
                       Category
                     </Text>
-                    <Text style={[styles.thCell, { width: "35%" }]}>
+                    <Text style={[styles.thCell, { width: "33%" }]}>
                       Property Types
                     </Text>
                     <Text
@@ -325,7 +382,7 @@ export default function CategoriesManagement() {
                       Actions
                     </Text>
                   </View>
-                  {categoriesData.map((cat) => (
+                  {filteredCategories.map((cat) => (
                     <View key={cat.code} style={styles.tableDataRow}>
                       <Text
                         style={[
@@ -338,7 +395,7 @@ export default function CategoriesManagement() {
                       </Text>
                       <View
                         style={{
-                          width: "18%",
+                          width: "20%",
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 8,
@@ -346,7 +403,7 @@ export default function CategoriesManagement() {
                       >
                         <View style={styles.categoryIcon}>
                           <Ionicons
-                            name={cat.icon as any}
+                            name={(cat.icon || "grid") as any}
                             size={14}
                             color="#D95D29"
                           />
@@ -358,7 +415,7 @@ export default function CategoriesManagement() {
                       <Text
                         style={[
                           styles.tdCell,
-                          { width: "35%", color: "#6b7280" },
+                          { width: "33%", color: "#6b7280" },
                         ]}
                         numberOfLines={1}
                       >
@@ -432,13 +489,13 @@ export default function CategoriesManagement() {
                 </View>
               ) : (
                 <View style={styles.mobileCardsStream}>
-                  {categoriesData.map((cat) => (
+                  {filteredCategories.map((cat) => (
                     <View key={cat.code} style={styles.mobileConfigCard}>
                       <View style={styles.cardHeaderRow}>
                         <View style={styles.cardHeaderLeft}>
                           <View style={styles.mobileIconContainer}>
                             <Ionicons
-                              name={cat.icon as any}
+                              name={(cat.icon || "grid") as any}
                               size={16}
                               color="#D95D29"
                             />
@@ -503,13 +560,14 @@ export default function CategoriesManagement() {
             </View>
           )}
 
+          {/* Locations Segment Layout view */}
           {activeSegment === "Locations" && (
             <View>
               <View style={styles.sectionHeaderRow}>
                 <View>
                   <Text style={styles.ledgerHeading}>Operational Zones</Text>
                   <Text style={styles.ledgerSubheading}>
-                    {locationsData.length} locations configured
+                    {filteredLocations.length} regional sectors mapped
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -565,7 +623,7 @@ export default function CategoriesManagement() {
                       Surge Multiplier
                     </Text>
                   </View>
-                  {locationsData.map((loc) => (
+                  {filteredLocations.map((loc) => (
                     <View key={loc.id} style={styles.tableDataRow}>
                       <Text
                         style={[
@@ -585,7 +643,7 @@ export default function CategoriesManagement() {
                         }}
                       >
                         <Ionicons
-                          name="business-outline"
+                          name="location-outline"
                           size={14}
                           color="#D95D29"
                         />
@@ -635,7 +693,7 @@ export default function CategoriesManagement() {
                 </View>
               ) : (
                 <View style={styles.mobileCardsStream}>
-                  {locationsData.map((loc) => (
+                  {filteredLocations.map((loc) => (
                     <View key={loc.id} style={styles.mobileConfigCard}>
                       <View style={styles.cardHeaderRow}>
                         <View style={styles.cardHeaderLeft}>
@@ -674,7 +732,7 @@ export default function CategoriesManagement() {
                             color="#6b7280"
                           />
                           <Text style={styles.mobileStatValue}>
-                            Base Tax: {loc.baseTaxRate}
+                            Tax Rate: {loc.baseTaxRate}
                           </Text>
                         </View>
                       </View>
@@ -682,93 +740,6 @@ export default function CategoriesManagement() {
                   ))}
                 </View>
               )}
-            </View>
-          )}
-
-          {activeSegment === "Pricing" && (
-            <View>
-              <View style={styles.sectionHeaderRow}>
-                <View>
-                  <Text style={styles.ledgerHeading}>Pricing Rules Engine</Text>
-                  <Text style={styles.ledgerSubheading}>
-                    {pricingRules.length} active rules
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.accentActionButton}
-                  onPress={() => {
-                    setModalType("pricing");
-                    setIsAddModalOpen(true);
-                  }}
-                >
-                  <LinearGradient
-                    colors={["#D95D29", "#c04e21"]}
-                    style={styles.addButtonGradient}
-                  >
-                    <Ionicons name="add" size={18} color="white" />
-                    <Text style={styles.btnActionText}>Add Rule</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.horizontalDivider} />
-
-              <View
-                style={[
-                  styles.pricingRulesLayout,
-                  isWeb ? styles.rowLayout : styles.columnLayout,
-                ]}
-              >
-                {pricingRules.map((rule) => (
-                  <LinearGradient
-                    key={rule.ruleId}
-                    colors={["#ffffff", "#f9fafb"]}
-                    style={[
-                      styles.pricingRuleCard,
-                      isWeb ? { width: "31.5%" } : { width: "100%" },
-                    ]}
-                  >
-                    <View style={styles.pricingCardHeader}>
-                      <View style={styles.pricingIconContainer}>
-                        <Ionicons
-                          name={rule.icon as any}
-                          size={20}
-                          color="#D95D29"
-                        />
-                      </View>
-                      <View style={styles.pricingStatusBadge}>
-                        <View style={styles.statusDotActive} />
-                        <Text style={styles.pricingStatusText}>
-                          {rule.status}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.ruleBadgeId}>{rule.ruleId}</Text>
-                    <Text style={styles.ruleTitleText}>{rule.ruleName}</Text>
-                    <Text style={styles.ruleDescText}>{rule.description}</Text>
-                    <View style={styles.deltaValueBox}>
-                      <LinearGradient
-                        colors={
-                          rule.delta.startsWith("+")
-                            ? ["#10b981", "#059669"]
-                            : ["#ef4444", "#dc2626"]
-                        }
-                        style={styles.deltaGradient}
-                      >
-                        <Ionicons
-                          name={
-                            rule.delta.startsWith("+")
-                              ? "trending-up"
-                              : "trending-down"
-                          }
-                          size={14}
-                          color="white"
-                        />
-                        <Text style={styles.deltaValueText}>{rule.delta}</Text>
-                      </LinearGradient>
-                    </View>
-                  </LinearGradient>
-                ))}
-              </View>
             </View>
           )}
         </View>
@@ -781,11 +752,11 @@ export default function CategoriesManagement() {
         visible={isAddModalOpen}
         onRequestClose={() => setIsAddModalOpen(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsAddModalOpen(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setIsAddModalOpen(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
           <View
             style={[styles.modalContentCard, { width: isWeb ? 500 : "92%" }]}
           >
@@ -795,12 +766,7 @@ export default function CategoriesManagement() {
             >
               <View style={styles.modalHeaderRow}>
                 <Text style={styles.modalHeadingTitle}>
-                  Add New{" "}
-                  {modalType === "category"
-                    ? "Category"
-                    : modalType === "location"
-                      ? "Location"
-                      : "Pricing Rule"}
+                  Add New {modalType === "category" ? "Category" : "Location"}
                 </Text>
                 <TouchableOpacity onPress={() => setIsAddModalOpen(false)}>
                   <Ionicons name="close" size={24} color="white" />
@@ -808,11 +774,11 @@ export default function CategoriesManagement() {
               </View>
             </LinearGradient>
 
-            {/* FIXED: Form Scroll View definitions targeted safely to avoid Android hierarchy engine crashes */}
             <ScrollView
               style={styles.modalFormScroll}
               contentContainerStyle={styles.modalFormScrollContent}
               showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
             >
               {modalType === "category" && (
                 <>
@@ -881,37 +847,6 @@ export default function CategoriesManagement() {
                   </View>
                 </>
               )}
-
-              {modalType === "pricing" && (
-                <>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Rule Name</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="e.g., Featured Listing Boost"
-                      placeholderTextColor="#9ca3af"
-                    />
-                  </View>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Description</Text>
-                    <TextInput
-                      style={[styles.formInput, styles.textArea]}
-                      multiline
-                      numberOfLines={3}
-                      placeholder="Describe the rule..."
-                      placeholderTextColor="#9ca3af"
-                    />
-                  </View>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Delta / Adjustment</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="e.g., +15%"
-                      placeholderTextColor="#9ca3af"
-                    />
-                  </View>
-                </>
-              )}
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -934,7 +869,7 @@ export default function CategoriesManagement() {
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </AdminLayout>
   );
@@ -983,7 +918,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     padding: 4,
     borderRadius: 14,
-    marginBottom: 24,
+    marginBottom: 16,
     gap: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
@@ -997,17 +932,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  segmentedTabScrollContentMobile: {
-    gap: 6,
-    paddingRight: 10,
-  },
   segmentBtn: {
     flex: 1,
     borderRadius: 10,
     overflow: "hidden",
   },
   segmentBtnMobile: {
-    width: width * 0.28,
+    flex: 1,
     borderRadius: 8,
     overflow: "hidden",
   },
@@ -1027,12 +958,8 @@ const styles = StyleSheet.create({
   },
   segmentBtnActive: {
     ...Platform.select({
-      web: {
-        boxShadow: "0px 2px 4px rgba(217, 93, 41, 0.2)",
-      },
-      default: {
-        elevation: 2,
-      },
+      web: { boxShadow: "0px 2px 4px rgba(217, 93, 41, 0.2)" },
+      default: { elevation: 2 },
     }),
   },
   segmentBtnText: {
@@ -1177,6 +1104,7 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     padding: 12,
   },
+  // 🔹 FIX: Added missing dynamic style keys mapping
   cardHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1205,12 +1133,6 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: "700",
     color: "#111111",
-  },
-  mobileCardName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111111",
-    marginBottom: 4,
   },
   mobileCardSubtext: {
     fontSize: 11.5,
@@ -1244,91 +1166,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#10b981",
   },
-  pricingRulesLayout: {
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
-    gap: isWeb ? 20 : 10,
-  },
-  rowLayout: {
-    flexDirection: "row",
-  },
-  columnLayout: {
-    flexDirection: "column",
-  },
-  pricingRuleCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    padding: isWeb ? 20 : 14,
-  },
-  pricingCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  pricingIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: "#fef3f0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pricingStatusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    borderRadius: 12,
-  },
-  statusDotActive: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#10b981",
-  },
-  pricingStatusText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#10b981",
-  },
-  ruleBadgeId: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#D95D29",
-    marginBottom: 4,
-  },
-  ruleTitleText: {
-    fontSize: isWeb ? 16 : 14,
-    fontWeight: "700",
-    color: "#111111",
-    marginBottom: 4,
-  },
-  ruleDescText: {
-    fontSize: 12,
-    color: "#6b7280",
-    lineHeight: 16,
-    marginBottom: 12,
-  },
-  deltaValueBox: {
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  deltaGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 8,
-  },
-  deltaValueText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "800",
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -1353,9 +1190,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "900",
     color: "white",
-  },
-  modalBody: {
-    padding: 24,
   },
   modalFormScroll: {
     flex: undefined,
@@ -1384,11 +1218,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#111111",
     padding: 0,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: "top",
-    paddingTop: 10,
+    width: "100%",
   },
   formRow: {
     flexDirection: "row",
@@ -1431,5 +1261,66 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 13.5,
     fontWeight: "700",
+  },
+  filterShelfCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginBottom: 16,
+    gap: 10,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: "#111111",
+    padding: 0,
+  },
+  filterInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
+  },
+  filterShelfLabel: {
+    fontSize: 12.5,
+    fontWeight: "700",
+    color: "#4b5563",
+  },
+  filterGroup: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  chipButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  chipActive: {
+    backgroundColor: "#111111",
+    borderColor: "#111111",
+  },
+  chipText: {
+    fontSize: 11.5,
+    fontWeight: "600",
+    color: "#4b5563",
+  },
+  chipTextActive: {
+    color: "#FFFFFF",
   },
 });
