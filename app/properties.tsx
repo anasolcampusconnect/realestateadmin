@@ -45,11 +45,10 @@ export default function PropertiesDirectory() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // 🔹 Success Modal States
+  // Success / Update Status Modal States
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [approvedProperty, setApprovedProperty] = useState<PropertyItem | null>(
-    null,
-  );
+  const [processedProperty, setProcessedProperty] =
+    useState<PropertyItem | null>(null);
 
   // Form State for dynamic new listing configurations
   const [newProperty, setNewProperty] = useState({
@@ -214,18 +213,30 @@ export default function PropertiesDirectory() {
     setIsDetailModalOpen(true);
   };
 
-  // 🔹 Triggered when clicking the Approved action button inside the detail audit loop
   const handleApproveProperty = () => {
     if (!selectedProperty) return;
 
-    // Mutate internal state dynamically to mark item as verified
     setPropertiesData((prev) =>
       prev.map((p) =>
         p.id === selectedProperty.id ? { ...p, status: "Approved" } : p,
       ),
     );
 
-    setApprovedProperty({ ...selectedProperty, status: "Approved" });
+    setProcessedProperty({ ...selectedProperty, status: "Approved" });
+    setIsDetailModalOpen(false);
+    setIsSuccessModalOpen(true);
+  };
+
+  const handleRejectProperty = () => {
+    if (!selectedProperty) return;
+
+    setPropertiesData((prev) =>
+      prev.map((p) =>
+        p.id === selectedProperty.id ? { ...p, status: "Rejected" } : p,
+      ),
+    );
+
+    setProcessedProperty({ ...selectedProperty, status: "Rejected" });
     setIsDetailModalOpen(false);
     setIsSuccessModalOpen(true);
   };
@@ -900,7 +911,21 @@ export default function PropertiesDirectory() {
               >
                 <Text style={styles.modalCloseText}>Close</Text>
               </TouchableOpacity>
-              {/* 🔹 FIX: Linked to new handleApproveProperty method */}
+
+              {/* Reject Button */}
+              <TouchableOpacity
+                style={[styles.modalActionButton, { marginRight: 8 }]}
+                onPress={handleRejectProperty}
+              >
+                <LinearGradient
+                  colors={["#ef4444", "#dc2626"]}
+                  style={styles.modalActionGradient}
+                >
+                  <Text style={styles.modalActionText}>Reject</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Approved Button */}
               <TouchableOpacity
                 style={styles.modalActionButton}
                 onPress={handleApproveProperty}
@@ -1152,7 +1177,7 @@ export default function PropertiesDirectory() {
         </View>
       </Modal>
 
-      {/* 🔹 Success Modal for Audited/Approved Properties 🔹 */}
+      {/* 🔹 Success Modal for Audited Properties 🔹 */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -1175,13 +1200,28 @@ export default function PropertiesDirectory() {
                   width: 56,
                   height: 56,
                   borderRadius: 28,
-                  backgroundColor: "rgba(16, 185, 129, 0.12)",
+                  backgroundColor:
+                    processedProperty?.status === "Approved" // 🔹 FIX: Changed parameter lookup from lifecycleStatus to status
+                      ? "rgba(16, 185, 129, 0.12)"
+                      : "rgba(239, 68, 68, 0.12)",
                   justifyContent: "center",
                   alignItems: "center",
                   marginBottom: 16,
                 }}
               >
-                <Ionicons name="checkmark-circle" size={36} color="#10b981" />
+                <Ionicons
+                  name={
+                    processedProperty?.status === "Approved"
+                      ? "checkmark-circle"
+                      : "close-circle"
+                  }
+                  size={36}
+                  color={
+                    processedProperty?.status === "Approved"
+                      ? "#10b981"
+                      : "#ef4444"
+                  }
+                />
               </View>
 
               <Text
@@ -1192,7 +1232,7 @@ export default function PropertiesDirectory() {
                   textAlign: "center",
                 }}
               >
-                Listing Approved
+                Listing {processedProperty?.status}
               </Text>
               <Text
                 style={{
@@ -1203,8 +1243,9 @@ export default function PropertiesDirectory() {
                   marginBottom: 20,
                 }}
               >
-                The real estate asset has been verified and published to the
-                public portal directory.
+                {processedProperty?.status === "Approved"
+                  ? "The real estate asset has been verified and published to the public portal directory."
+                  : "The real estate asset listing request has been rejected and archived."}
               </Text>
 
               <View
@@ -1240,7 +1281,7 @@ export default function PropertiesDirectory() {
                       fontWeight: "700",
                     }}
                   >
-                    {approvedProperty?.id}
+                    {processedProperty?.id}
                   </Text>
                 </View>
                 <View
@@ -1269,7 +1310,7 @@ export default function PropertiesDirectory() {
                     }}
                     numberOfLines={1}
                   >
-                    {approvedProperty?.title}
+                    {processedProperty?.title}
                   </Text>
                 </View>
                 <View
@@ -1290,11 +1331,14 @@ export default function PropertiesDirectory() {
                   <Text
                     style={{
                       fontSize: 12,
-                      color: "#10b981",
+                      color:
+                        processedProperty?.status === "Approved"
+                          ? "#10b981"
+                          : "#ef4444",
                       fontWeight: "700",
                     }}
                   >
-                    {approvedProperty?.price}
+                    {processedProperty?.price}
                   </Text>
                 </View>
                 <View
@@ -1319,7 +1363,7 @@ export default function PropertiesDirectory() {
                       fontWeight: "600",
                     }}
                   >
-                    {approvedProperty?.agent}
+                    {processedProperty?.agent}
                   </Text>
                 </View>
               </View>
